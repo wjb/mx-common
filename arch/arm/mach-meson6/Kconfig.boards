@@ -14,4 +14,11 @@ config MACH_MESON6_REF
 	help
           Support for Amlogic Meson6 reference development platform.
 
+config MACH_MESON6_G18
+	depends on ARCH_MESON6
+	bool "Meson6 g18 board"
+	help
+          Support for Amlogic Meson6 g18 platform.
+
+
 endif # ARCH_MESON6
