@@ -2610,7 +2610,7 @@ static __init void meson_init_early(void)
 
 }
 
-MACHINE_START(MESON6_REF, "Amlogic Meson6 g18 MX2 platform")
+MACHINE_START(MESON6_G18, "Amlogic Meson6 g18 MX2 platform")
     .boot_params    = BOOT_PARAMS_OFFSET,
     .map_io         = meson_map_io,///2
     .init_early     = meson_init_early,///3
