@@ -43,8 +43,8 @@ CONFIG_NR_CPUS=2
 CONFIG_PREEMPT=y
 CONFIG_AEABI=y
 CONFIG_HIGHMEM=y
-CONFIG_CMDLINE="root=/dev/mtdblock5 rootfstype=yaffs2 rootwait console=ttyS0,115200n8 rw mem=1024M logo=osd1,0x84100000,720p nohlt a9_clk=800M clk81=187500000 init=/sbin/init hdmitx=true mac=c4:4e:ac:00:c0:25"
-CONFIG_CMDLINE_FORCE=y
+CONFIG_CMDLINE="root=/dev/mtdblock5 rootfstype=yaffs2 a9_clk=800M clk81=187500000 init=/sbin/init hdmitx=true"
+CONFIG_CMDLINE_APPEND=y
 CONFIG_CPU_FREQ=y
 CONFIG_CPU_FREQ_GOV_ONDEMAND=y
 CONFIG_CPU_FREQ_GOV_CONSERVATIVE=y
