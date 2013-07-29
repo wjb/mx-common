@@ -27,6 +27,12 @@ obj-y += usb/
 
 obj-$(CONFIG_AM_NAND) += nand/
 
+ifeq ($(CONFIG_SPI_NAND_COMPATIBLE), y) 
+	obj-$(CONFIG_SPI_NAND_COMPATIBLE)	+= nand/
+else
+	obj-$(CONFIG_AM_NAND) += nand/
+endif
+
 obj-y += ethernet/
 
 #obj-$(CONFIG_SATA_DWC_AHCI) += sata/
@@ -44,7 +50,11 @@ obj-$(CONFIG_I2C) += i2c/
 
 obj-y += input/
 
-obj-$(CONFIG_AMLOGIC_SPI_NOR) += spi_nor/
+ifeq ($(CONFIG_SPI_NAND_COMPATIBLE), y) 
+	obj-$(CONFIG_SPI_NAND_COMPATIBLE)	+= spi_nor/
+else
+	obj-$(CONFIG_AMLOGIC_SPI_NOR) += spi_nor/
+endif
 
 #obj-$(CONFIG_CMEM) += cmem/
 
@@ -108,7 +118,6 @@ obj-$(CONFIG_AM_DEBUG) += debug/
 
 obj-$(CONFIG_VIDEO_AMLOGIC_CAPTURE)	+= camera/
 
-obj-$(CONFIG_AM_SENSORS) += sensors/
 
 obj-$(CONFIG_AMLOGIC_MIPI) += mipi/
 

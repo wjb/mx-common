@@ -11,7 +11,7 @@
  * published by the Free Software Foundation.
  */
 
-
+#include <linux/module.h>
 #include <mach/am_regs.h>
 
 #include "tvin_global.h"
@@ -19,6 +19,8 @@
 #include "tvin_format_table.h"
 #include "vdin_regs.h"
 #include "vdin.h"
+
+static unsigned int comp_out_swt = 0;
 
 /***************************Local defines**********************************/
 #define BBAR_BLOCK_THR_FACTOR           3
@@ -401,6 +403,11 @@ static inline void vdin_set_top(unsigned int offset, enum tvin_port_e port, unsi
             vdin_mux = VDIN_MUX_NULL;
             break;
     }
+    
+    vdin_data_bus_0 = comp_out_swt?(comp_out_swt&0xf):vdin_data_bus_0;
+    vdin_data_bus_1 = comp_out_swt?((comp_out_swt>>4)&0xf):vdin_data_bus_1;
+    vdin_data_bus_2 = comp_out_swt?((comp_out_swt>>8)&0xf):vdin_data_bus_2;
+    
     WRITE_CBUS_REG_BITS((VDIN_COM_CTRL0 + offset),
         vdin_mux, VDIN_SEL_BIT, VDIN_SEL_WID);
     WRITE_CBUS_REG_BITS((VDIN_COM_CTRL0 + offset),
@@ -1424,4 +1431,7 @@ inline void vdin_set_default_regmap(unsigned int offset)
     WRITE_CBUS_REG((VDIN_WIN_V_START_END      + offset), 0x00000000);
 #endif
 }
+
+MODULE_PARM_DESC(comp_out_swt, "\n comp_out_swt \n");
+module_param(comp_out_swt, int, 0664);
 

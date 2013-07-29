@@ -46,9 +46,10 @@
 #include <linux/gpio.h>
 #include <linux/spinlock.h>
 #include <linux/amdsc.h>
+#include <linux/string.h>
 #include "aml_dvb.h"
 
-#if 1
+#if 0
 #define pr_dbg(fmt, args...) printk(KERN_DEBUG "DVB: " fmt, ## args)
 #else
 #define pr_dbg(fmt, args...)
@@ -136,6 +137,7 @@ static int aml_dvb_dmx_init(struct aml_dvb *advb, struct aml_dmx *dmx, int id)
 	}
 	
 	dmx->source  = AM_TS_SRC_TS0;
+	dmx->dump_ts_select = 0;
 	dmx->dvr_irq = -1;
 	/*
 	if(id==0) {
@@ -350,6 +352,7 @@ static int aml_dvb_asyncfifo_init(struct aml_dvb *advb, struct aml_asyncfifo *as
 	asyncfifo->dvb = advb;
 	asyncfifo->id = id;
 	asyncfifo->init = 0;
+	asyncfifo->flush_size = 256*1024;
 	
 	return aml_asyncfifo_hw_init(asyncfifo);
 }
@@ -477,6 +480,78 @@ static ssize_t dsc_store_source(struct class *class,struct class_attribute *attr
 	return size;
 }
 
+/*Show the TS output source*/
+static ssize_t tso_show_source(struct class *class, struct class_attribute *attr,char *buf)
+{
+	struct aml_dvb *dvb = &aml_dvb_device;
+	ssize_t ret = 0;
+	char *src;
+	
+	switch(dvb->tso_source) {
+		case AM_TS_SRC_TS0:
+		case AM_TS_SRC_S_TS0:
+			src = "ts0";
+		break;
+		case AM_TS_SRC_TS1:
+		case AM_TS_SRC_S_TS1:
+			src = "ts1";
+		break;
+		case AM_TS_SRC_TS2:
+		case AM_TS_SRC_S_TS2:
+			src = "ts2";
+		break;		
+		case AM_TS_SRC_HIU:
+			src = "hiu";
+		break;
+		case AM_TS_SRC_DMX0:
+			src = "dmx0";
+		break;
+		case AM_TS_SRC_DMX1:
+			src = "dmx1";
+		break;
+		case AM_TS_SRC_DMX2:
+			src = "dmx2";
+		break;
+		default:
+			src = "";
+		break;
+	}
+	
+	ret = sprintf(buf, "%s\n", src);
+	return ret;
+}
+
+/*Set the TS output source*/
+static ssize_t tso_store_source(struct class *class,struct class_attribute *attr,
+                          const char *buf,
+                          size_t size)
+{
+    dmx_source_t src = -1;
+	
+    if(!strncmp("ts0", buf, 3)) {
+    	src = DMX_SOURCE_FRONT0;
+    } else if(!strncmp("ts1", buf, 3)) {
+    	src = DMX_SOURCE_FRONT1;
+    } else if(!strncmp("ts2", buf, 3)) {
+    	src = DMX_SOURCE_FRONT2;
+    } else if(!strncmp("hiu", buf, 3)) {
+    	src = DMX_SOURCE_DVR0;
+    } else if(!strncmp("dmx0", buf, 4)) {
+        src = DMX_SOURCE_FRONT0+100;
+    } else if(!strncmp("dmx1", buf, 4)) {
+        src = DMX_SOURCE_FRONT1+100;
+    } else if(!strncmp("dmx2", buf, 4)) {
+        src = DMX_SOURCE_FRONT2+100;
+    }
+    if(src!=-1) {
+    	aml_tso_hw_set_source(&aml_dvb_device, src);
+    }
+    
+    return size;
+}
+
+
+
 
 /*Show the STB input source*/
 #define DEMUX_SOURCE_FUNC_DECL(i)  \
@@ -528,14 +603,50 @@ static ssize_t demux##i##_store_source(struct class *class,  struct class_attrib
     return size;\
 }
 
+/*DVR record mode*/
+#define DVR_MODE_FUNC_DECL(i)  \
+static ssize_t dvr##i##_show_mode(struct class *class,  struct class_attribute *attr,char *buf)\
+{\
+	struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_dmx *dmx = &dvb->dmx[i];\
+	ssize_t ret = 0;\
+	char *mode;\
+	if(dmx->dump_ts_select) {\
+		mode = "ts";\
+	}else{\
+		mode = "pid";\
+	}\
+	ret = sprintf(buf, "%s\n", mode);\
+	return ret;\
+}\
+static ssize_t dvr##i##_store_mode(struct class *class,  struct class_attribute *attr,const char *buf, size_t size)\
+{\
+    struct aml_dvb *dvb = &aml_dvb_device;\
+    struct aml_dmx *dmx = &dvb->dmx[i];\
+    int dump_ts_select = -1;\
+    \
+    if(!strncmp("pid", buf, 3) && dmx->dump_ts_select) {\
+    	dump_ts_select = 0;\
+    } else if(!strncmp("ts", buf, 2) && !dmx->dump_ts_select) {\
+    	dump_ts_select = 1;\
+    }\
+    if(dump_ts_select!=-1) {\
+    	aml_dmx_hw_set_dump_ts_select(aml_dvb_device.dmx[i].dmxdev.demux, dump_ts_select);\
+    }\
+    return size;\
+}
+
 #if DMX_DEV_COUNT>0
 	DEMUX_SOURCE_FUNC_DECL(0)
+	DVR_MODE_FUNC_DECL(0)
 #endif
 #if DMX_DEV_COUNT>1
 	DEMUX_SOURCE_FUNC_DECL(1)
+	DVR_MODE_FUNC_DECL(1)
 #endif
 #if DMX_DEV_COUNT>2
 	DEMUX_SOURCE_FUNC_DECL(2)
+	DVR_MODE_FUNC_DECL(2)
 #endif
 
 /*Show the async fifo source*/
@@ -585,6 +696,35 @@ static ssize_t asyncfifo##i##_store_source(struct class *class,  struct class_at
 #endif
 #if ASYNCFIFO_COUNT>1
 	ASYNCFIFO_SOURCE_FUNC_DECL(1)
+#endif
+
+/*Show the async fifo flush size*/
+#define ASYNCFIFO_FLUSHSIZE_FUNC_DECL(i)  \
+static ssize_t asyncfifo##i##_show_flush_size(struct class *class,  struct class_attribute *attr,char *buf)\
+{\
+	struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
+	ssize_t ret = 0;\
+	ret = sprintf(buf, "%d\n", afifo->flush_size);\
+	return ret;\
+}\
+static ssize_t asyncfifo##i##_store_flush_size(struct class *class,  struct class_attribute *attr,const char *buf, size_t size)\
+{\
+    struct aml_dvb *dvb = &aml_dvb_device;\
+	struct aml_asyncfifo *afifo = &dvb->asyncfifo[i];\
+	int fsize = (int)simple_strtol(buf, NULL, 10);\
+	if (fsize != afifo->flush_size) {\
+		afifo->flush_size = fsize;\
+    	aml_asyncfifo_hw_reset(&aml_dvb_device.asyncfifo[i]);\
+    }\
+    return size;\
+}
+
+#if ASYNCFIFO_COUNT>0
+	ASYNCFIFO_FLUSHSIZE_FUNC_DECL(0)
+#endif
+#if ASYNCFIFO_COUNT>1
+	ASYNCFIFO_FLUSHSIZE_FUNC_DECL(1)
 #endif
 
 
@@ -650,24 +790,34 @@ static struct dvb_device dvbdev_dsc = {
 static struct class_attribute aml_stb_class_attrs[] = {
 	__ATTR(source,  S_IRUGO | S_IWUSR, stb_show_source, stb_store_source),
 	__ATTR(dsc_source,  S_IRUGO | S_IWUSR, dsc_show_source, dsc_store_source),
+	__ATTR(tso_source,  S_IRUGO | S_IWUSR, tso_show_source, tso_store_source),
 #define DEMUX_SOURCE_ATTR_DECL(i)\
 		__ATTR(demux##i##_source,  S_IRUGO | S_IWUSR, demux##i##_show_source, demux##i##_store_source)
+#define DVR_MODE_ATTR_DECL(i)\
+		__ATTR(dvr##i##_mode,  S_IRUGO | S_IWUSR, dvr##i##_show_mode, dvr##i##_store_mode)
 #if DMX_DEV_COUNT>0
 	DEMUX_SOURCE_ATTR_DECL(0),
+	DVR_MODE_ATTR_DECL(0),
 #endif
 #if DMX_DEV_COUNT>1
 	DEMUX_SOURCE_ATTR_DECL(1),
+	DVR_MODE_ATTR_DECL(1),
 #endif
 #if DMX_DEV_COUNT>2
 	DEMUX_SOURCE_ATTR_DECL(2),
+	DVR_MODE_ATTR_DECL(2),
 #endif
 #define ASYNCFIFO_SOURCE_ATTR_DECL(i)\
 		__ATTR(asyncfifo##i##_source,  S_IRUGO | S_IWUSR, asyncfifo##i##_show_source, asyncfifo##i##_store_source)
+#define ASYNCFIFO_FLUSHSIZE_ATTR_DECL(i)\
+		__ATTR(asyncfifo##i##_flush_size,  S_IRUGO | S_IWUSR, asyncfifo##i##_show_flush_size, asyncfifo##i##_store_flush_size)
 #if ASYNCFIFO_COUNT>0
 	ASYNCFIFO_SOURCE_ATTR_DECL(0),
+	ASYNCFIFO_FLUSHSIZE_ATTR_DECL(0),
 #endif
 #if ASYNCFIFO_COUNT>1
 	ASYNCFIFO_SOURCE_ATTR_DECL(1),
+	ASYNCFIFO_FLUSHSIZE_ATTR_DECL(1),
 #endif
 	__ATTR(demux_reset,  S_IRUGO | S_IWUSR, NULL, demux_do_reset),
 	__ATTR(video_pts,  S_IRUGO | S_IWUSR, demux_show_video_pts, NULL),

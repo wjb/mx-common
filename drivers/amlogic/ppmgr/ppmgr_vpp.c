@@ -1220,8 +1220,8 @@ static void process_vf_rotate(vframe_t *vf, ge2d_context_t *context, config_para
     u32 ratio = 100;
     mode = amvideo_get_scaler_para(&rect_x, &rect_y, &rect_w, &rect_h, &ratio);
     if ((rect_w == 0 || rect_h == 0) && mode) {
-        rect_w = ppmgr_device.canvas_width;
-        rect_h = ppmgr_device.canvas_height;
+        rect_w = ppmgr_device.disp_width;
+        rect_h = ppmgr_device.disp_height;
     }
     if (ppmgr_device.receiver != 0 && mode) {
         rect_w = ppmgr_device.canvas_width;
@@ -2236,7 +2236,6 @@ static int ppmgr_task(void *data)
             vf = get_cur_dispbuf();
             if(vf){
                 process_vf_adjust(vf, context, &ge2d_config);
-                    //EnableVideoLayer();
             }
 
             vf = vfq_peek(&q_ready);
@@ -2458,11 +2457,15 @@ int ppmgr_buffer_init(int vout_mode)
 
 	    if (ppmgr_device.disp_height == 0)
 	        ppmgr_device.disp_height = ppmgr_device.vinfo->height;
-
-	//    canvas_width = (ppmgr_device.disp_width +0xff) & ~0xff;
-	//    canvas_height = (ppmgr_device.disp_height+0xff) & ~0xff;
-	    canvas_width = (ppmgr_device.disp_width + 0x1f) & ~0x1f;
-	    canvas_height =( ppmgr_device.disp_height + 0x1f) & ~0x1f;
+            if (get_platform_type() == PLATFORM_MID_VERTICAL) {
+                int DISP_SIZE = ppmgr_device.disp_width > ppmgr_device.disp_height ? 
+                        ppmgr_device.disp_width : ppmgr_device.disp_height;
+                canvas_width = (DISP_SIZE + 0x1f) & ~0x1f;
+                canvas_height = (DISP_SIZE + 0x1f) & ~0x1f;
+            } else {
+                canvas_width = (ppmgr_device.disp_width + 0x1f) & ~0x1f;
+                canvas_height = (ppmgr_device.disp_height + 0x1f) & ~0x1f;
+            }
 	    decbuf_size = canvas_width * canvas_height * 3;
 
 	    ppmgr_device.canvas_width = canvas_width;

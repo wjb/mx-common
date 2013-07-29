@@ -45,6 +45,7 @@
 #define VIDTYPE_VSCALE_DISABLE          0x10000
 #define VIDTYPE_CANVAS_TOGGLE           0x20000
 #define VIDTYPE_PRE_INTERLACE           0x40000
+#define VIDTYPE_HIGHRUN                 0x80000
 
 #define DISP_RATIO_FORCECONFIG          0x80000000
 #define DISP_RATIO_FORCE_NORMALWIDE     0x40000000
@@ -195,6 +196,8 @@ typedef struct vframe_s {
 struct vframe_prop_s * vdin_get_vframe_prop(u32 index);
 #endif
 int get_curren_frame_para(int* top ,int* left , int* bottom, int* right);
+
+u8 is_vpp_postblend(void);
 
 #endif /* VFRAME_H */
 

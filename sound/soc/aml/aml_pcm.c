@@ -81,6 +81,9 @@ static int audio_type_info = -1;
 static int audio_sr_info = -1;
 extern unsigned audioin_mode;
 
+
+static int audio_ch_info = -1;
+
 //static struct rt5631_platform_data *rt5631_snd_pdata = NULL;
 static struct aml_pcm_work_t{
 	struct snd_pcm_substream *substream;
@@ -122,7 +125,7 @@ static const struct snd_pcm_hardware aml_pcm_hardware = {
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE|SNDRV_PCM_FMTBIT_S24_LE|SNDRV_PCM_FMTBIT_S32_LE,
 
 	.period_bytes_min	= 64,
-	.period_bytes_max	= 8*1024,
+	.period_bytes_max	= 32 * 1024,
 	.periods_min		= 2,
 	.periods_max		= 1024,
 	.buffer_bytes_max	= 128 * 1024,
@@ -130,7 +133,7 @@ static const struct snd_pcm_hardware aml_pcm_hardware = {
 	.rate_min = 8000,
 	.rate_max = 48000,
 	.channels_min = 2,
-	.channels_max = 2,
+	.channels_max = 8,
 	.fifo_size = 0,
 };
 
@@ -143,7 +146,7 @@ static const struct snd_pcm_hardware aml_pcm_capture = {
 
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
 	.period_bytes_min	= 64,
-	.period_bytes_max	= 8*1024,
+	.period_bytes_max	= 32 * 1024,
 	.periods_min		= 2,
 	.periods_max		= 1024,
 	.buffer_bytes_max	= 64 * 1024,
@@ -151,7 +154,7 @@ static const struct snd_pcm_hardware aml_pcm_capture = {
 	.rate_min = 8000,
 	.rate_max = 48000,
 	.channels_min = 2,
-	.channels_max = 2,
+	.channels_max = 8,
 	.fifo_size = 0,
 };
 
@@ -427,7 +430,7 @@ static void  aml_hw_i2s_init(struct snd_pcm_runtime *runtime)
 			break;
 		}
 		audio_set_i2s_mode(I2S_MODE);
-		audio_set_aiubuf(runtime->dma_addr, runtime->dma_bytes);
+		audio_set_aiubuf(runtime->dma_addr, runtime->dma_bytes, runtime->channels);
 		memset((void*)runtime->dma_area,0,runtime->dma_bytes + 4096);
 		/* update the i2s hw buffer end addr as android may update that */
 		aml_pcm_playback_phy_end_addr = aml_pcm_playback_phy_start_addr+runtime->dma_bytes;
@@ -441,12 +444,15 @@ so notify HDMI to set audio parameter every time when HDMI AUDIO not ready
 
 static int audio_notify_hdmi_info(int audio_type, void *v){
     	struct snd_pcm_substream *substream =(struct snd_pcm_substream*)v;
-	if(substream->runtime->rate != audio_sr_info || audio_type_info != audio_type || !audio_hdmi_init_ready())
+	if(substream->runtime->rate != audio_sr_info || audio_type_info != audio_type || !audio_hdmi_init_ready()
+		|| substream->runtime->channels != audio_ch_info)
 	{
-		printk("audio info changed.notify to hdmi: type %d,sr %d\n",audio_type,substream->runtime->rate);
+		printk("audio info changed.notify to hdmi: type %d,sr %d,ch %d\n",audio_type,substream->runtime->rate,
+			substream->runtime->channels);
 		aout_notifier_call_chain(audio_type,v);
 	}
 	audio_sr_info = substream->runtime->rate;
+	audio_ch_info = substream->runtime->channels;
 	audio_type_info = audio_type;
 
 }
@@ -997,6 +1003,39 @@ static int aml_pcm_copy_playback(struct snd_pcm_runtime *runtime, int channel,
         if(pos % align){
           printk("audio data unaligned: pos=%d, n=%d, align=%d\n", (int)pos, n, align);
         }
+		
+		if(runtime->channels == 8){
+			int32_t *lf, *cf, *rf, *ls, *rs, *lef, *sbl, *sbr;
+			lf  = to;
+			cf  = to + 8*1;
+			rf  = to + 8*2;
+			ls  = to + 8*3;
+			rs  = to + 8*4;
+			lef = to + 8*5;
+			sbl = to + 8*6;
+			sbr = to + 8*7;
+			for (j = 0; j < n; j += 256) {
+		    	for (i = 0; i < 8; i++) {
+	         		*lf++  = (*tfrom ++)>>8;
+	          		*cf++  = (*tfrom ++)>>8;
+					*rf++  = (*tfrom ++)>>8;
+					*ls++  = (*tfrom ++)>>8;
+					*rs++  = (*tfrom ++)>>8;
+					*lef++ = (*tfrom ++)>>8;
+					*sbl++ = (*tfrom ++)>>8;
+					*sbr++ = (*tfrom ++)>>8;
+		    	}
+		    	lf  += 7*8;
+		    	cf  += 7*8;
+				rf  += 7*8;
+				ls  += 7*8;
+				rs  += 7*8;
+				lef += 7*8;
+				sbl += 7*8;
+				sbr += 7*8;
+		 	}
+		}
+		else {
         for(j=0; j< n; j+= 64){
           for(i=0; i<8; i++){
             *left++  =  (*tfrom ++)>>8;
@@ -1005,6 +1044,7 @@ static int aml_pcm_copy_playback(struct snd_pcm_runtime *runtime, int channel,
           left += 8;
           right += 8;
         }
+      	}
       }
 
 	}else{

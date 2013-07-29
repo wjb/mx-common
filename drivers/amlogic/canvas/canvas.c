@@ -38,7 +38,11 @@
 #define pr_dbg(fmt, args...) printk(KERN_DEBUG "Canvas: " fmt, ## args)
 #define pr_error(fmt, args...) printk(KERN_ERR "Canvas: " fmt, ## args)
 
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6TV
 #define CANVAS_NUM	256
+#else
+#define CANVAS_NUM	192
+#endif
 
 static struct platform_device *canvas_dev;
 static DEFINE_SPINLOCK(lock);

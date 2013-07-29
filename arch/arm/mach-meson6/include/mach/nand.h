@@ -14,7 +14,7 @@
 #endif
 
 /***default disable MX RevD support***/
-//#define	MX_REVD
+#define	MX_REVD
 
 #ifdef MX_REVD
 #define	NAND_PAGELIST_MAGIC 	0x4c50414e
@@ -189,7 +189,7 @@
 #define NFC_SEND_CMD_DWR(data)              NFC_SEND_CMD(DWR     |(data&0xff  ))
 #define NFC_SEND_CMD_DRD(    )              NFC_SEND_CMD(DRD                   )
 */
-#define NFC_SEND_CMD_IDLE(ce,time)          NFC_SEND_CMD(NFC_CMD_IDLE(ce,time))
+#define NFC_SEND_CMD_IDLE(ce,time)          {while(NFC_CMDFIFO_SIZE()>0);NFC_SEND_CMD(NFC_CMD_IDLE(ce,time));}
 #define NFC_SEND_CMD_CLE(ce,cmd  )          NFC_SEND_CMD(NFC_CMD_CLE(ce,cmd))
 #define NFC_SEND_CMD_ALE(ce,addr )          NFC_SEND_CMD(NFC_CMD_ALE(ce,addr))
 #define NFC_SEND_CMD_STANDBY(time)          NFC_SEND_CMD(NFC_CMD_STANDBY(time))
@@ -491,6 +491,7 @@ struct aml_nand_bch_desc{
 
 //for SANDISK
 #define    SANDISK_19NM			50
+#define     SANDISK_24NM			51
 
 #define      DYNAMIC_REG_NUM        3
 #define      DYNAMIC_REG_INIT_NUM        9

@@ -15,6 +15,13 @@ config AM_NAND
 	help
 	  Support for NAND flash on Amlogic Meson platforms
 
+config SPI_NAND_COMPATIBLE
+	bool "Meson SPI and NAND flash compatible"
+	depends on ARCH_MESON3 || ARCH_MESON6
+	default n
+	help
+	  Support SPI and NAND flash compatible
+
 config AM_NAND_RBPIN
 	bool "Meson NAND RB bit support"
 	depends on AM_NAND

@@ -150,7 +150,7 @@ static s32 vh264mvc_init(void);
 #define CMD_ALLOC_VIEW_1           2
 #define CMD_FRAME_DISPLAY          3
 
-#define CANVAS_INDEX_START         120
+#define CANVAS_INDEX_START         AMVDEC_H264MVC_CANVAS_INDEX
 
 unsigned  DECODE_BUFFER_START=0x00200000;
 unsigned DECODE_BUFFER_END=0x05000000;

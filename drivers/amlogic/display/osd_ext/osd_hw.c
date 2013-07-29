@@ -1420,12 +1420,33 @@ void osd_ext_resume_hw(void)
 void osd_ext_clone_pan(u32 index)
 {
 	s32 offset = 0;
+	s32 height_osd0 = 0;
+	s32 height_osd2 = 0;
+
+	height_osd0 = osd_hw.pandata[index].y_end - osd_hw.pandata[index].y_start + 1;
+	height_osd2 = osd_ext_hw.pandata[index].y_end - osd_ext_hw.pandata[index].y_start + 1;
+
 	if (osd_ext_hw.clone[index]) {
+		if (osd_hw.pandata[index].y_start < height_osd0){
+			if (osd_ext_hw.pandata[index].y_start >= height_osd2){
+				offset -= osd_ext_hw.pandata[index].y_end - osd_ext_hw.pandata[index].y_start + 1;
+			}else{
+				offset = 0;
+			}
+		}else{
+			if (osd_ext_hw.pandata[index].y_start < height_osd2){
+				offset += osd_ext_hw.pandata[index].y_end - osd_ext_hw.pandata[index].y_start + 1;
+			}else{
+				offset = 0;
+			}
+		}
+#if 0
 		if (osd_ext_hw.pandata[index].y_start > osd_hw.pandata[index].y_start) {
 			offset -= osd_ext_hw.pandata[index].y_end - osd_ext_hw.pandata[index].y_start + 1;
 		} else if (osd_ext_hw.pandata[index].y_start < osd_hw.pandata[index].y_start) {
 			offset += osd_ext_hw.pandata[index].y_end - osd_ext_hw.pandata[index].y_start + 1;
 		}
+#endif
 		osd_ext_hw.pandata[index].y_start += offset;
 		osd_ext_hw.pandata[index].y_end += offset;
 		if (osd_ext_hw.angle[index]) {

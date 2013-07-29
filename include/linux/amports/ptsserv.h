@@ -31,6 +31,9 @@ enum {
 #define apts_checkin(x) pts_checkin(PTS_TYPE_AUDIO, (x))
 #define vpts_checkin(x) pts_checkin(PTS_TYPE_VIDEO, (x))
 
+#ifndef CALC_CACHED_TIME
+#define CALC_CACHED_TIME
+#endif
 extern int pts_checkin(u8 type, u32 val);
 
 extern int pts_checkin_wrptr(u8 type, u32 ptr, u32 val);
@@ -52,5 +55,7 @@ extern int pts_stop(u8 type);
 extern int first_lookup_pts_failed(u8 type);
 
 extern int first_pts_checkin_complete(u8 type);
+extern int calculation_stream_delayed_ms(u8 type,u32 *latestbirate,u32*avg_bitare);
+
 
 #endif /* PTSSERV_H */

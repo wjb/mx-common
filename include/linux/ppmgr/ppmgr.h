@@ -162,7 +162,8 @@ typedef enum {
 typedef enum {
     PLATFORM_MID  = 0,
     PLATFORM_MBX,
-    PLATFORM_TV
+    PLATFORM_TV,
+    PLATFORM_MID_VERTICAL
 } platform_type_t;
 //#endif
 

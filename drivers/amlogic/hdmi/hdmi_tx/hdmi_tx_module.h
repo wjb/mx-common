@@ -109,6 +109,13 @@ typedef struct hdmi_tx_dev_s {
     unsigned char tmp_buf[HDMI_TMP_BUF_SIZE];
     unsigned int  log;
     unsigned int  internal_mode_change;
+    unsigned int  cec_func_config;
+    unsigned int  cec_init_ready;
+    unsigned int  tv_cec_support;
+#ifdef CONFIG_AM_HDMI_REPEATER
+    unsigned int  hdcp_repeater_mode;
+    unsigned int  repeater_hdcp_cmd; /* 1, start; 2, stop */
+#endif    
 }hdmitx_dev_t;
 
 // HDMI LOG
@@ -131,7 +138,7 @@ typedef struct hdmi_tx_dev_s {
 #endif        
 
 
-#define HDMITX_VER "2013Mar4a"
+#define HDMITX_VER "2013Apr23a"
 
 /************************************
 *    hdmitx protocol level interface
@@ -196,6 +203,10 @@ extern unsigned char hdmi_audio_off_flag;
     #define HDCP_OFF    0x0
     #define HDCP_ON     0x1
     #define IS_HDCP_ON  0x2
+#ifdef CONFIG_AM_HDMI_REPEATER
+    #define HDCP_RESET  0x3
+#endif
+    
 #define HDMITX_HDCP_MONITOR                  0x11
 #define HDMITX_IP_INTR_MASN_RST              0x12
 #define HDMITX_HWCMD_HPD_RESET               0X13

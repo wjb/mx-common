@@ -513,7 +513,7 @@ static void vreal_canvas_init(void)
         decbuf_size = 0x300000;
     }
 
-    if (READ_MPEG_REG(VPP_MISC) & VPP_VD1_POSTBLEND) {
+    if(is_vpp_postblend()){
         canvas_t cur_canvas;
 
         canvas_read((READ_MPEG_REG(VD1_IF0_CANVAS0) & 0xff), &cur_canvas);

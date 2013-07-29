@@ -32,11 +32,13 @@
 #include <linux/amports/vframe.h>
 #include <linux/amports/vframe_provider.h>
 #include <linux/amports/vframe_receiver.h>
+#include <linux/amports/vformat.h>
 #include <linux/workqueue.h>
 #include <linux/dma-mapping.h>
 #include <asm/atomic.h>
 #include <plat/io.h>
 
+#include "vdec.h"
 #include "vdec_reg.h"
 #include "amvdec.h"
 #include "vh264_mc.h"
@@ -186,6 +188,9 @@ static s32 last_ptr;
 static u32 wait_buffer_counter;
 static uint error_recovery_mode = 3;
 static uint mb_total = 0, mb_width = 0,  mb_height=0;
+#define UCODE_IP_ONLY 2
+#define UCODE_IP_ONLY_PARAM 1
+static uint ucode_type = 0;
 
 #ifdef DEBUG_PTS
 static unsigned long pts_missed, pts_hit;
@@ -202,6 +207,23 @@ static DEFINE_SPINLOCK(lock);
 
 static int vh264_stop(void);
 static s32 vh264_init(void);
+
+#define DFS_HIGH_THEASHOLD 3
+static inline int fifo_level(void)
+{
+    int level = get_ptr - fill_ptr;
+
+    if (level < 0) {
+        level += VF_POOL_SIZE;
+    }
+
+    return level;
+}
+
+static void vdec_dfs(void)
+{
+    vdec_power_mode((fifo_level() > DFS_HIGH_THEASHOLD) ? 0 : 1);
+}
 
 void spec_set_canvas(buffer_spec_t *spec,
                      unsigned width,
@@ -291,6 +313,8 @@ static vframe_t *vh264_vf_get(void* op_arg)
     }
 
     INCPTR(get_ptr);
+
+    vdec_dfs();
 
     return vf;
 }
@@ -1014,6 +1038,7 @@ static void vh264_isr(void)
             }
         }
 
+        vdec_dfs();
         WRITE_VREG(AV_SCRATCH_0, 0);
     } else if ((cpu_cmd & 0xff) == 3) {
         vh264_running = 1;
@@ -1039,7 +1064,7 @@ static void vh264_isr(void)
         fatal_error_flag = 0x10;
         // this is fatal error, need restart
         printk("fatal error happend\n");
-	if(!fatal_error_reset)
+    if(!fatal_error_reset)
         schedule_work(&error_wd_work);
     }
 
@@ -1052,13 +1077,13 @@ static void vh264_isr(void)
 
 static int vh264_vfbuf_use(void)
 {
-	int i, j;
-	for (i=0, j=0; i<VF_BUF_NUM; i++) {
-		if (vfbuf_use[i] != 0) {
-			j++;
-		}
-	}
-	return j;
+    int i, j;
+    for (i=0, j=0; i<VF_BUF_NUM; i++) {
+        if (vfbuf_use[i] != 0) {
+            j++;
+        }
+    }
+    return j;
 }
 
 static void vh264_put_timer_func(unsigned long arg)
@@ -1081,11 +1106,10 @@ static void vh264_put_timer_func(unsigned long arg)
     vh264_isr();
 #endif
 
-    //printk("decoded frame %d\n", READ_MPEG_REG(AV_SCRATCH_H));
     if (vh264_stream_switching || vh264_stream_new) {
         wait_buffer_counter = 0;
     } else {
-        reg_val = READ_MPEG_REG(AV_SCRATCH_9);
+        reg_val = READ_VREG(AV_SCRATCH_9);
         wait_buffer_status = reg_val & (1 << 31);
         wait_i_pass_frames = reg_val & 0xff;
         if (wait_buffer_status) {
@@ -1281,6 +1305,14 @@ static void vh264_prot_init(void)
 #ifdef NV21
     SET_VREG_MASK(MDEC_PIC_DC_CTRL, 1<<17);
 #endif
+    if (ucode_type == UCODE_IP_ONLY_PARAM )
+    {
+        SET_VREG_MASK(AV_SCRATCH_F, 1<<6);
+    }
+    else
+    {
+        CLEAR_VREG_MASK(AV_SCRATCH_F, 1<<6);
+    }
 }
 
 static void vh264_local_init(void)
@@ -1302,6 +1334,11 @@ static void vh264_local_init(void)
     pts_outside = ((u32)vh264_amstream_dec_info.param) & 0x01;
     sync_outside = ((u32)vh264_amstream_dec_info.param & 0x02) >> 1;
     use_idr_framerate = ((u32)vh264_amstream_dec_info.param & 0x04) >> 2;
+    max_refer_buf = !(((u32)vh264_amstream_dec_info.param & 0x10) >> 4);
+    if ((u32)vh264_amstream_dec_info.param & 0x08)
+    {    
+        ucode_type = UCODE_IP_ONLY_PARAM ;
+    }
 
     buffer_for_recycle_rd = 0;
     buffer_for_recycle_wr = 0;
@@ -1494,7 +1531,7 @@ static void stream_switching_done(void)
     spin_lock_irqsave(&lock, flags);
 
     if (vh264_stream_switching) {
-	    vh264_stream_switching = 0;
+        vh264_stream_switching = 0;
         spin_unlock_irqrestore(&lock, flags);
 
         WRITE_VREG(AV_SCRATCH_7, 0);
@@ -1510,10 +1547,10 @@ static void stream_switching_done(void)
         WRITE_VREG(AV_SCRATCH_8, 0);
         WRITE_VREG(AV_SCRATCH_9, 0);
 
-		vh264_set_params();
+        vh264_set_params();
     } else {
         spin_unlock_irqrestore(&lock, flags);
-	}
+    }
 }
 
 static int canvas_dup(u8 *dst, ulong src_paddr, ulong size)
@@ -1690,8 +1727,8 @@ static struct platform_driver amvdec_h264_driver = {
 };
 
 static struct codec_profile_t amvdec_h264_profile = {
-	.name = "h264",
-	.profile = ""
+    .name = "h264",
+    .profile = ""
 };
 
 static int __init amvdec_h264_driver_init_module(void)
@@ -1702,7 +1739,7 @@ static int __init amvdec_h264_driver_init_module(void)
         printk("failed to register amvdec_h264 driver\n");
         return -ENODEV;
     }
-	vcodec_profile_register(&amvdec_h264_profile);
+    vcodec_profile_register(&amvdec_h264_profile);
     return 0;
 }
 
@@ -1727,6 +1764,8 @@ module_param(fatal_error_reset, uint, 0664);
 MODULE_PARM_DESC(fatal_error_reset, "\n amvdec_h264 decoder reset when fatal error happens \n");
 module_param(max_refer_buf, uint, 0664);
 MODULE_PARM_DESC(max_refer_buf, "\n amvdec_h264 decoder buffering or not for reference frame \n");
+module_param(ucode_type, uint, 0664);
+MODULE_PARM_DESC(ucode_type, "\n amvdec_h264 decoder buffering or not for reference frame \n");
 module_init(amvdec_h264_driver_init_module);
 module_exit(amvdec_h264_driver_remove_module);
 

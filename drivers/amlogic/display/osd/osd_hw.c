@@ -1852,20 +1852,28 @@ void osd_cursor_hw(s16 x, s16 y, s16 xstart, s16 ystart, u32 osd_w, u32 osd_h, i
 	memcpy(&disp_tmp, &osd_hw.dispdata[OSD1], sizeof(dispdata_t));
 	if (osd_hw.scale[OSD2].h_enable && (osd_hw.scaledata[OSD2].x_start > 0)
 			&& (osd_hw.scaledata[OSD2].x_end > 0)) {
+		disp_tmp.x_start = 0;
+		disp_tmp.x_end = osd_hw.scaledata[OSD2].x_start - 1;
 		x = x * osd_hw.scaledata[OSD2].x_end / osd_hw.scaledata[OSD2].x_start;
 		if (osd_hw.scaledata[OSD2].x_end > osd_hw.scaledata[OSD2].x_start) {
-			disp_tmp.x_start=osd_hw.dispdata[OSD1].x_start * osd_hw.scaledata[OSD2].x_end / osd_hw.scaledata[OSD2].x_start;
-			disp_tmp.x_end=osd_hw.dispdata[OSD1].x_end * osd_hw.scaledata[OSD2].x_end / osd_hw.scaledata[OSD2].x_start;
+			disp_tmp.x_start =  disp_tmp.x_start * osd_hw.scaledata[OSD2].x_end / osd_hw.scaledata[OSD2].x_start;
+			disp_tmp.x_end = disp_tmp.x_end * osd_hw.scaledata[OSD2].x_end / osd_hw.scaledata[OSD2].x_start;
 		}
+		disp_tmp.x_start += xstart;
+		disp_tmp.x_end += xstart;
 	}
 
 	if (osd_hw.scale[OSD2].v_enable && (osd_hw.scaledata[OSD2].y_start > 0)
 			&& (osd_hw.scaledata[OSD2].y_end > 0)) {
+		disp_tmp.y_start = 0;
+		disp_tmp.y_end = osd_hw.scaledata[OSD2].y_start - 1;
 		y = y * osd_hw.scaledata[OSD2].y_end / osd_hw.scaledata[OSD2].y_start;
 		if (osd_hw.scaledata[OSD2].y_end > osd_hw.scaledata[OSD2].y_start) {
-			disp_tmp.y_start = osd_hw.dispdata[OSD1].y_start * osd_hw.scaledata[OSD2].y_end / osd_hw.scaledata[OSD2].y_start;
-			disp_tmp.y_end = osd_hw.dispdata[OSD1].y_end * osd_hw.scaledata[OSD2].y_end / osd_hw.scaledata[OSD2].y_start;
+			disp_tmp.y_start = disp_tmp.y_start * osd_hw.scaledata[OSD2].y_end / osd_hw.scaledata[OSD2].y_start;
+			disp_tmp.y_end = disp_tmp.y_end * osd_hw.scaledata[OSD2].y_end / osd_hw.scaledata[OSD2].y_start;
 		}
+		disp_tmp.y_start += ystart;
+		disp_tmp.y_end += ystart;
 	}
 
 	x += xstart;

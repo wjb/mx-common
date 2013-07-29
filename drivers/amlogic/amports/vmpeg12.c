@@ -98,6 +98,8 @@ MODULE_AMLOG(LOG_LEVEL_ERROR, 0, LOG_LEVEL_DESC, LOG_DEFAULT_MASK_DESC);
 #define DEC_CONTROL_FLAG_FORCE_2500_704_576_INTERLACE  0x0008
 #define DEC_CONTROL_FLAG_FORCE_2500_544_576_INTERLACE  0x0010
 #define DEC_CONTROL_FLAG_FORCE_2500_480_576_INTERLACE  0x0020
+#define DEC_CONTROL_INTERNAL_MASK                      0x0fff
+#define DEC_CONTROL_FLAG_FORCE_3_TO_2_PULLDOWN_FORCE_PROG	0x1000
 
 #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6  
 #define NV21
@@ -238,12 +240,11 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
 
     reg = READ_VREG(MREG_BUFFEROUT);
 
-	if ((reg >> 16) == 0xfe)
-	{	
-		wakeup_userdata_poll(reg & 0xffff, ccbuf_phyAddress, CCBUF_SIZE);
-		WRITE_VREG(MREG_BUFFEROUT, 0);
-	}
-	else   if (reg) {
+    if ((reg >> 16) == 0xfe) {	
+        wakeup_userdata_poll(reg & 0xffff, ccbuf_phyAddress, CCBUF_SIZE);
+        WRITE_VREG(MREG_BUFFEROUT, 0);
+    }
+    else if (reg) {
         info = READ_VREG(MREG_PIC_INFO);
         offset = READ_VREG(MREG_FRAME_OFFSET);
 
@@ -286,7 +287,9 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
             (frame_dur == 3840)) {
             frame_prog = 0;
         }
-
+        else if (dec_control & DEC_CONTROL_FLAG_FORCE_3_TO_2_PULLDOWN_FORCE_PROG) {
+            frame_prog |= PICINFO_PROG;
+        }
 
         if (frame_prog & PICINFO_PROG) {
             u32 index = ((reg & 7) - 1) & 3;
@@ -314,6 +317,13 @@ static irqreturn_t vmpeg12_isr(int irq, void *dev_id)
                 vf->duration_pulldown = 0; // no pull down
 
             } else {
+                if ((seqinfo & SEQINFO_EXT_AVAILABLE) && 
+                    ((seqinfo & SEQINFO_PROG) == 0) &&
+                    (info & PICINFO_RPT_FIRST)) {
+                    // avoid interlace/progressive mixing and post all progressive frames in this case
+                    dec_control |= DEC_CONTROL_FLAG_FORCE_3_TO_2_PULLDOWN_FORCE_PROG;
+                }
+
                 vf->duration_pulldown = (info & PICINFO_RPT_FIRST) ?
                                         vf->duration >> 1 : 0;
             }
@@ -507,7 +517,7 @@ static void vmpeg12_canvas_init(void)
         decbuf_size    = 0x300000;
     }
 
-    if (READ_MPEG_REG(VPP_MISC) & VPP_VD1_POSTBLEND) {
+    if(is_vpp_postblend()){
         canvas_t cur_canvas;
 
         canvas_read((READ_MPEG_REG(VD1_IF0_CANVAS0) & 0xff), &cur_canvas);
@@ -638,6 +648,8 @@ static void vmpeg12_local_init(void)
     }
 
     frame_force_skip_flag = 0;
+
+    dec_control &= DEC_CONTROL_INTERNAL_MASK;
 }
 
 static s32 vmpeg12_init(void)

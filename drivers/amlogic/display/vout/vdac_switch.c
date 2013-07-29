@@ -43,214 +43,28 @@ static struct early_suspend early_suspend;
 static int early_suspend_flag = 0;
 #endif
 
-typedef  struct {
-	const vinfo_t *vinfo;
-	char 	     name[20] ;
-}disp_module_info_t ;
-
+#define char2lower(c) (((c>='A')&&(c<='Z')) ? ((c) + 'a' - 'A') : (c))
 
 MODULE_AMLOG(0, 0xff, LOG_LEVEL_DESC, LOG_MASK_DESC);
 
+static unsigned char switch_mode = VOUT_CVBS;
 static struct aml_vdac_switch_platform_data *vdac_switch_platdata = NULL;
 
-#ifdef  CONFIG_PM
-static int  meson_vdac_switch_suspend(struct platform_device *pdev, pm_message_t state);
-static int  meson_vdac_switch_resume(struct platform_device *pdev);
-#endif
-
-static    disp_module_info_t    video_info;
-
-static const vinfo_t tv_info[] = 
+static inline int str2lower(char *dst, char *src, int length)
 {
-    { /* VMODE_480I */
-		.name              = "480i",
-		.mode              = VMODE_480I,
-        .width             = 720,
-        .height            = 480,
-        .field_height      = 240,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    },
-     { /* VMODE_480CVBS*/
-		.name              = "480cvbs",
-		.mode              = VMODE_480CVBS,
-        .width             = 720,
-        .height            = 480,
-        .field_height      = 240,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_480P */
-		.name              = "480p",
-		.mode              = VMODE_480P,
-        .width             = 720,
-        .height            = 480,
-        .field_height      = 480,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_576I */
-		.name              = "576i",
-		.mode              = VMODE_576I,
-        .width             = 720,
-        .height            = 576,
-        .field_height      = 288,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 50,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_576I */
-		.name              = "576cvbs",
-		.mode              = VMODE_576CVBS,
-        .width             = 720,
-        .height            = 576,
-        .field_height      = 288,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 50,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_576P */
-		.name              = "576p",
-		.mode              = VMODE_576P,
-        .width             = 720,
-        .height            = 576,
-        .field_height      = 576,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 50,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_720P */
-		.name              = "720p",
-		.mode              = VMODE_720P,
-        .width             = 1280,
-        .height            = 720,
-        .field_height      = 720,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_1080I */
-		.name              = "1080i",
-		.mode              = VMODE_1080I,
-        .width             = 1920,
-        .height            = 1080,
-        .field_height      = 540,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_1080P */
-		.name              = "1080p",
-		.mode              = VMODE_1080P,
-        .width             = 1920,
-        .height            = 1080,
-        .field_height      = 1080,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_720P_50hz */
-		.name              = "720p50hz",
-		.mode              = VMODE_720P_50HZ,
-        .width             = 1280,
-        .height            = 720,
-        .field_height      = 720,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 50,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_1080I_50HZ */
-		.name              = "1080i50hz",
-		.mode              = VMODE_1080I_50HZ,
-        .width             = 1920,
-        .height            = 1080,
-        .field_height      = 540,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 50,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_1080P_50HZ */
-		.name              = "1080p50hz",
-		.mode              = VMODE_1080P_50HZ,
-        .width             = 1920,
-        .height            = 1080,
-        .field_height      = 1080,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 50,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_1080P_24HZ */
-		.name              = "1080p24hz",
-		.mode              = VMODE_1080P_24HZ,
-        .width             = 1920,
-        .height            = 1080,
-        .field_height      = 1080,
-        .aspect_ratio_num  = 16,
-        .aspect_ratio_den  = 9,
-        .sync_duration_num = 24,
-        .sync_duration_den = 1,
-    },
-    { /* VMODE_vga */
-		.name              = "vga",
-		.mode              = VMODE_VGA,
-        .width             = 640,
-        .height            = 480,
-        .field_height      = 240,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    }, 
-    { /* VMODE_SVGA */
-		.name              = "svga",
-		.mode              = VMODE_SVGA,
-        .width             = 800,
-        .height            = 600,
-        .field_height      = 600,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    }, 
-    { /* VMODE_XGA */
-		.name              = "xga",
-		.mode              = VMODE_XGA,
-        .width             = 1024,
-        .height            = 768,
-        .field_height      = 768,
-        .aspect_ratio_num  = 4,
-        .aspect_ratio_den  = 3,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    }, 
-    { /* VMODE_sxga */
-		.name              = "sxga",
-		.mode              = VMODE_SXGA,
-        .width             = 1280,
-        .height            = 1024,
-        .field_height      = 1024,
-        .aspect_ratio_num  = 5,
-        .aspect_ratio_den  = 4,
-        .sync_duration_num = 60,
-        .sync_duration_den = 1,
-    }, 
-};
+    int i = 0;
 
+    if( (dst==NULL) || (src==NULL) )
+        return -1;
+
+    for( i=0; i<length; i++ )
+    {
+        if( (dst[i]=src[i]) == '\0')
+            break;
+    }
+
+    return 0;
+}
 
 #ifdef  CONFIG_PM
 static int  meson_vdac_switch_suspend(struct platform_device *pdev, pm_message_t state)
@@ -293,131 +107,82 @@ static void meson_vdac_switch_late_resume(struct early_suspend *h)
 }
 #endif
 
-static const vinfo_t *vdac_switch_get_info(void)
+static int vdac_switch_set_mode(unsigned char mode)
 {
-	return video_info.vinfo;
-}
-
-static int vdac_switch_set_vmode(vmode_t mode)
-{
-	if ((mode&VMODE_MODE_BIT_MASK)> VMODE_SXGA)
-		return -EINVAL;
-
-	video_info.vinfo = &tv_info[mode];
-
-	if(mode&VMODE_LOGO_BIT_MASK)
-		return 0;
-
-	
 	if( (vdac_switch_platdata!=NULL)&&(vdac_switch_platdata->vdac_switch_change_type_func!=NULL) )
 	{
-		if( (mode==VMODE_480CVBS) || (mode==VMODE_576CVBS) )
+		if( (mode>=VOUT_CVBS) && (mode<VOUT_MAX) )
 		{
-			printk("vdac_switch mode = %d, switch = CVBS\n",mode);
-			vdac_switch_platdata->vdac_switch_change_type_func(VOUT_CVBS);
-		}
-		else if( mode <= VMODE_1080P_24HZ )
-		{
-			printk("vdac_switch mode = %d, switch = COMPONENT\n",mode);
-			vdac_switch_platdata->vdac_switch_change_type_func(VOUT_COMPONENT);
-		}
-		else if( mode <= VMODE_SXGA )
-		{
-			printk("vdac_switch mode = %d, switch = VGA\n",mode);
-			vdac_switch_platdata->vdac_switch_change_type_func(VOUT_VGA);
-		}
-		else
-			;// TODO: how about the VMODE_LCD and VMODE_LVDS ?
-	}
-
-	return 0;
-}
-
-static const vinfo_t *get_valid_vinfo(char  *mode)
-{
-	const vinfo_t * vinfo = NULL;
-	int  i,count=ARRAY_SIZE(tv_info);
-	int mode_name_len=0;
-	
-	for(i=0;i<count;i++)
-	{
-		if(strncmp(tv_info[i].name,mode,strlen(tv_info[i].name))==0)
-		{
-			if((vinfo==NULL)||(strlen(tv_info[i].name)>mode_name_len)){
-			    vinfo = &tv_info[i];
-			    mode_name_len = strlen(tv_info[i].name);
-			}
+			printk("vdac_switch mode = %d\n", mode);
+			vdac_switch_platdata->vdac_switch_change_type_func(mode);
 		}
 	}
-	return vinfo;
-}
 
-static vmode_t vdac_switch_validate_vmode(char *mode)
-{
-	const vinfo_t *info = get_valid_vinfo(mode);
-
-	if (info)
-		return info->mode;
-	
-	return VMODE_MAX;
-}
-
-static int vdac_switch_vmode_is_supported(vmode_t mode)
-{
-	int  i,count=ARRAY_SIZE(tv_info);
-	mode&=VMODE_MODE_BIT_MASK;
-	for(i=0;i<count;i++)
-	{
-		if(tv_info[i].mode==mode)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-static int vdac_switch_module_disable(vmode_t cur_vmod)
-{
 	return 0;
 }
-
-#ifdef  CONFIG_PM
-static int vdac_switch_suspend(void)
-{
-	return 0;
-}
-
-static int vdac_switch_resume(void)
-{
-	vdac_switch_set_vmode(video_info.vinfo->mode);
-	return 0;
-}
-#endif 
-
-static vout_server_t vdac_switch_server={
-	.name = "vout_vdac_switch_server",
-	.op = {	
-		.get_vinfo=vdac_switch_get_info,
-		.set_vmode=vdac_switch_set_vmode,
-		.validate_vmode=vdac_switch_validate_vmode,
-		.vmode_is_supported=vdac_switch_vmode_is_supported,
-		.disable = vdac_switch_module_disable,
-#ifdef  CONFIG_PM  
-		.vout_suspend=vdac_switch_suspend,
-		.vout_resume=vdac_switch_resume,
-#endif	
-	},
-};
-
 
 /*****************************************************************
 **
 **	vout driver interface  
 **
 ******************************************************************/
+#define VDACSWITCH_CLASS_NAME "vdac_hw_switch"
+
+static ssize_t vdacswitch_mode_show(struct class *class, struct class_attribute *attr, char *buf)
+{
+    const char *mode_str[] = {"cvbs","component","vga"};
+
+    if( switch_mode < ARRAY_SIZE(mode_str) )
+    {
+        return sprintf(buf, "%d:%s\n", switch_mode, mode_str[switch_mode]);
+    }
+
+    return 0;
+}
+
+static ssize_t vdacswitch_mode_store(struct class *class, struct class_attribute *attr,
+                                    const char *buf, size_t count)
+{
+    unsigned char mode = 0;
+    char *endp, mode_in_lower[16];
+
+    mode = (unsigned char)simple_strtoul(buf, &endp, 0);
+/*
+    if( mode >= VOUT_MAX )
+    {
+        memset(mode_in_lower, 0x00, 16);
+        str2lower(mode_in_lower, buf, 15);
+        if( !strcmp(mode_in_lower,"cvbs") )
+            mode = VOUT_CVBS;
+        else if( !strcmp(mode_in_lower,"component") )
+            mode = VOUT_COMPONENT;
+        else if( !strcmp(mode_in_lower,"vga") )
+            mode = VOUT_VGA;
+    }
+*/
+    if( ((mode>=VOUT_CVBS)&&(mode<VOUT_MAX)) && mode != switch_mode )
+    {
+        switch_mode = mode;
+        vdac_switch_set_mode(switch_mode);
+    }
+
+    return count;
+}
+
+static struct class_attribute vdacswitch_class_attrs[] =
+{
+    __ATTR(mode, S_IRUGO|S_IWUSR, vdacswitch_mode_show, vdacswitch_mode_store),
+    __ATTR_NULL
+};
+
+static struct class vdacswitch_class = 
+{
+    .name = VDACSWITCH_CLASS_NAME,
+    .class_attrs = vdacswitch_class_attrs,
+};
 static int meson_vdac_switch_probe(struct platform_device *pdev)
 {
-	int ret =-1;
+	int ret = 0;
 	
 	amlog_mask_level(LOG_MASK_INIT,LOG_LEVEL_HIGH,"start init vdac switch module \r\n");
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -429,17 +194,13 @@ static int meson_vdac_switch_probe(struct platform_device *pdev)
 
 	vdac_switch_platdata = (struct aml_vdac_switch_platform_data*)pdev->dev.platform_data;
 
-	ret = vout_register_server(&vdac_switch_server);
-	if(ret)
-	{
-		amlog_mask_level(LOG_MASK_INIT,LOG_LEVEL_HIGH,"registe vdac_switch server fail \r\n");
-	}
-	else
-	{
-		amlog_mask_level(LOG_MASK_INIT,LOG_LEVEL_HIGH,"registe vdac_switch server ok \r\n");
-	}
+    vdac_switch_set_mode(switch_mode);
 
-	memset(&video_info, 0, sizeof(disp_module_info_t));
+    ret = class_register(&vdacswitch_class);
+    if(ret)
+    {
+        printk("vdac switch driver create class failed!\n");
+    }
 
 	return ret;
 }
@@ -450,7 +211,6 @@ static int meson_vdac_switch_remove(struct platform_device *pdev)
 #endif
 
 	vdac_switch_platdata = NULL;
-	memset(&video_info, 0, sizeof(disp_module_info_t));
 
 	return 0;
 }
@@ -490,6 +250,27 @@ static __exit void vdac_switch_exit_module(void)
 
 arch_initcall(vdac_switch_init_module);
 module_exit(vdac_switch_exit_module);
+
+static int __init vdac_hw_switch_bootargs_setup(char *line)
+{
+    unsigned char mode[16];
+
+    memset(mode, 0x00, 16);
+    str2lower(mode, line, 15);
+
+    if( !strcmp(mode, "cvbs") )
+        switch_mode = VOUT_CVBS;
+    else if( !strcmp(mode, "component") )
+        switch_mode = VOUT_COMPONENT;
+    else if( !strcmp(mode, "vga") )
+        switch_mode = VOUT_VGA;
+    else
+        switch_mode = VOUT_CVBS;
+
+    return 1;
+}
+
+__setup("vdachwswitch=", vdac_hw_switch_bootargs_setup);
 
 MODULE_DESCRIPTION("vdac switch module");
 MODULE_LICENSE("GPL");

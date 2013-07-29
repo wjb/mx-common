@@ -184,10 +184,17 @@
 #if defined(CONFIG_AM_DEINTERLACE_SD_ONLY)
 #define DI_MEM_SIZE         (SZ_1M*3)
 #else
-#define DI_MEM_SIZE         (SZ_1M*15)
+#define DI_MEM_SIZE         (SZ_1M*35)
 #endif
+
+#if 1
+#define DI_ADDR_START       U_ALIGN(VDIN_ADDR_END)
+#define DI_ADDR_END         (DI_ADDR_START+DI_MEM_SIZE-1)
+#else
 #define DI_ADDR_START       U_ALIGN(CODEC_ADDR_END)
 #define DI_ADDR_END         (DI_ADDR_START+DI_MEM_SIZE-1)
+#endif
+
 
 #ifdef CONFIG_POST_PROCESS_MANAGER
 #ifdef CONFIG_POST_PROCESS_MANAGER_PPSCALER
@@ -199,7 +206,7 @@
 #define PPMGR_MEM_SIZE		0
 #endif /* CONFIG_POST_PROCESS_MANAGER */
 
-#define PPMGR_ADDR_START	U_ALIGN(VDIN_ADDR_END)
+#define PPMGR_ADDR_START	U_ALIGN(DI_ADDR_END)
 #define PPMGR_ADDR_END		(PPMGR_ADDR_START+PPMGR_MEM_SIZE-1)
 
 #define STREAMBUF_MEM_SIZE          (SZ_1M*10)
@@ -653,12 +660,11 @@ static struct aml_nand_platform aml_nand_mid_platform[] = {
 #endif
     {
         .name = NAND_NORMAL_NAME,
-        .chip_enable_pad = (AML_NAND_CE0) | (AML_NAND_CE1 << 4),// | (AML_NAND_CE2 << 8) | (AML_NAND_CE3 << 12)),
-        .ready_busy_pad = (AML_NAND_CE0) | (AML_NAND_CE1 << 4),// | (AML_NAND_CE1 << 8) | (AML_NAND_CE1 << 12)),
-
+        .chip_enable_pad = (AML_NAND_CE0/* | (AML_NAND_CE1 << 4) | (AML_NAND_CE2 << 8) | (AML_NAND_CE3 << 12)*/),
+        .ready_busy_pad = (AML_NAND_CE0 /*| (AML_NAND_CE0 << 4) | (AML_NAND_CE1 << 8) | (AML_NAND_CE1 << 12)*/),
         .platform_nand_data = {
             .chip =  {
-                .nr_chips = 2,
+                .nr_chips = 1,
                 .nr_partitions = ARRAY_SIZE(normal_partition_info),
                 .partitions = normal_partition_info,
                 .options = (NAND_TIMING_MODE5 | NAND_ECC_BCH60_1K_MODE | NAND_TWO_PLANE_MODE),
@@ -1553,8 +1559,8 @@ static struct meson_cs_pdata_t vcck_pdata = {
         1010000, 1010000, 1010000, 1010000,
     },
     .default_uV = 1110000,
-//    .get_voltage = get_voltage,
-//    .set_voltage = set_voltage,
+    .get_voltage = get_voltage,
+    .set_voltage = set_voltage,
 };
 static struct meson_opp vcck_opp_table[] = {
     /* freq must be in descending order */
@@ -2249,6 +2255,75 @@ static struct resource amlogic_dvb_fe_resource[]  = {
 		.name  = "fe0_dev"
 	},	
 #endif	
+#if (defined CONFIG_AM_AVL6211)
+	[0] = {
+		.start = 4,                                 //DTV demod: M1=0, SI2176=1, MXL101=2, AVL6211=4
+		.end   = 4,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0"
+	},
+	[1] = {
+		.start = 0,                                 //i2c adapter id
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_i2c_adap_id"
+	},
+	[2] = {
+		.start = 0xC0,                              //i2c address
+		.end   = 0xC0,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_i2c_addr"
+	},
+	[3] = {
+		.start = 0,                                 //reset value
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_reset_value"
+	},
+	[4] = {
+		.start = PAD_GPIOD_8, //reset pin
+		.end   = PAD_GPIOD_8,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_reset_gpio"
+	},
+	[5] = {
+		.start = 0,
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "fe0_dtv_demod"
+	},
+	[6] = {
+		.start = 2,
+		.end   = 2,
+		.flags = IORESOURCE_MEM,
+		.name  = "fe0_ts"
+	},
+	[7] = {
+		.start = 0,
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "fe0_dev"
+	},
+	/*in mx public not need, this is add for sync for m3*/
+	[8] = {
+		.start = 0,	 //is avl6211
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_tunerpower"
+	},
+	[9] = {
+		.start = 0,	//DVBS2 LNBON/OFF pin
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_lnbpower"
+	},	
+	[10] = {
+		.start = 0,
+		.end   = 0,
+		.flags = IORESOURCE_MEM,
+		.name  = "dtv_demod0_antoverload"
+	},		
+#endif
 };
 
 static  struct platform_device amlogic_dvb_fe_device = {
@@ -2385,48 +2460,39 @@ static void vdac_hw_switch(unsigned type)
 		case VOUT_CVBS:
 			// set YPBR_EN# to high
 			if((aml_read_reg32(P_PREG_PAD_GPIO2_O) & (1<<2)) == 0)
-			{
 				aml_set_reg32_mask(P_PREG_PAD_GPIO2_O,(1<<2));
-				aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<2));//GPIOC2
-			}
+
 			// set CVBS_EN# to high
 			if((aml_read_reg32(P_PREG_PAD_GPIO2_O) & (1<<3)) == 0)
-			{
 				aml_set_reg32_mask(P_PREG_PAD_GPIO2_O,(1<<3));
-				aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<3));//GPIOC3
-			}
+
 			break;
 		case VOUT_COMPONENT:
 			// set YPBR_EN# to low
 			if((aml_read_reg32(P_PREG_PAD_GPIO2_O) & (1<<2)) != 0)
-			{
 			    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_O,(1<<2));
-			    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<2));//GPIOC2
-			}
+
 			// set CVBS_EN# to low
 			if((aml_read_reg32(P_PREG_PAD_GPIO2_O) & (1<<3)) != 0)
-			{
 			    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_O,(1<<3));
-			    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<3));//GPIOC3
-			}
+
 			break;
 		case VOUT_VGA:
 			// set YPBR_EN# to high
 			if((aml_read_reg32(P_PREG_PAD_GPIO2_O) & (1<<2)) == 0)
-			{
 				aml_set_reg32_mask(P_PREG_PAD_GPIO2_O,(1<<2));
-				aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<2));//GPIOC2
-			}
+
 			// set CVBS_EN# to low
 			if((aml_read_reg32(P_PREG_PAD_GPIO2_O) & (1<<3)) != 0)
-			{
 			    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_O,(1<<3));
-			    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<3));//GPIOC3
-			}
+
 			break;
 		default:
 			break;
 	}
+
+    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<2));//GPIOC2
+    aml_clr_reg32_mask(P_PREG_PAD_GPIO2_EN_N,(1<<3));//GPIOC3
 
 	return ;
 }
@@ -2586,9 +2652,9 @@ static __init void meson_init_machine(void)
 #ifdef CONFIG_AM_REMOTE
 	setup_remote_device();
 #endif
-#ifdef CONFIG_EFUSE
-	setup_aml_efuse();	
-#endif
+//#ifdef CONFIG_EFUSE
+//	setup_aml_efuse();	
+//#endif
     setup_usb_devices();
     setup_devices_resource();
     platform_add_devices(platform_devs, ARRAY_SIZE(platform_devs));

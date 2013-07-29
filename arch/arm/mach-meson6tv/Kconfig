@@ -1,5 +1,11 @@
 if ARCH_MESON6TV
 
+config MESON_M6C_ENHANCEMENT
+       bool "M6C chip enhancement based on M6TV"
+       default n
+       help
+               If using M6C chip instead of M6W or M6L . 
+
 config CLKTREE_DEBUG
 	bool "New clock tree debug support"
 	default y

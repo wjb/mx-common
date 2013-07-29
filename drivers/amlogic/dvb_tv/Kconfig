@@ -43,12 +43,96 @@ config AMLOGIC_TS0
 	help
 		Enable TS0.
 
+config AMLOGIC_S_TS0
+	bool "Serial TS0"
+	default n
+	depends on AMLOGIC_TS0
+	help
+		TS0 in serial mode.
+
+config AMLOGIC_TS0_INVERT_S2P1_FEC_ERROR
+	bool "Invert FEC_ERROR TS0"
+	default n
+	depends on AMLOGIC_S_TS0
+	help
+		TS0 FEC_ERROR invert
+
+config AMLOGIC_TS0_INVERT_S2P1_FEC_DATA
+	bool "Invert FEC_DATA TS0"
+	default n
+	depends on AMLOGIC_S_TS0
+	help
+		TS0 FEC_DATA invert
+
+config AMLOGIC_TS0_INVERT_S2P1_FEC_SYNC
+	bool "Invert FEC_SYNC TS0"
+	default n
+	depends on AMLOGIC_S_TS0
+	help
+		TS0 FEC_SYNC invert
+
+config AMLOGIC_TS0_INVERT_S2P1_FEC_VALID
+	bool "Invert FEC_VALID TS0"
+	default n
+	depends on AMLOGIC_S_TS0
+	help
+		TS0 FEC_VALID invert
+
+config AMLOGIC_TS0_INVERT_S2P1_FEC_CLK
+	bool "Invert FEC_CLK TS0"
+	default n
+	depends on AMLOGIC_S_TS0
+	help
+		TS0 FEC_CLK invert
+
 config AMLOGIC_TS1
 	bool "Enable TS1"
 	default n
 	depends on AM_DVB
 	help
 		Enable TS1.
+
+config AMLOGIC_S_TS1
+	bool "Serial TS1"
+	default n
+	depends on AMLOGIC_TS1
+	help
+		TS1 in serial mode.
+
+config AMLOGIC_TS1_INVERT_S2P1_FEC_ERROR
+	bool "Invert FEC_ERROR TS1"
+	default n
+	depends on AMLOGIC_S_TS1
+	help
+		TS1 FEC_ERROR invert
+
+config AMLOGIC_TS1_INVERT_S2P1_FEC_DATA
+	bool "Invert FEC_DATA TS1"
+	default n
+	depends on AMLOGIC_S_TS1
+	help
+		TS1 FEC_DATA invert
+
+config AMLOGIC_TS1_INVERT_S2P1_FEC_SYNC
+	bool "Invert FEC_SYNC TS1"
+	default n
+	depends on AMLOGIC_S_TS1
+	help
+		TS1 FEC_SYNC invert
+
+config AMLOGIC_TS1_INVERT_S2P1_FEC_VALID
+	bool "Invert FEC_VALID TS1"
+	default n
+	depends on AMLOGIC_S_TS1
+	help
+		TS1 FEC_VALID invert
+
+config AMLOGIC_TS1_INVERT_S2P1_FEC_CLK
+	bool "Invert FEC_CLK TS1"
+	default n
+	depends on AMLOGIC_S_TS1
+	help
+		TS1 FEC_CLK invert
 
 config AMLOGIC_TS2
 	bool "Enable TS2"
@@ -57,26 +141,47 @@ config AMLOGIC_TS2
 	help
 		Enable TS2.
 
-config AMLOGIC_S_TS0
-	bool "Serial TS0"
-	default n
-	depends on AM_DVB
-	help
-		TS0 in serial mode.
-
-config AMLOGIC_S_TS1
-	bool "Serial TS1"
-	default n
-	depends on AM_DVB
-	help
-		TS1 in serial mode.
-
 config AMLOGIC_S_TS2
 	bool "Serial TS2"
 	default n
-	depends on AM_DVB
+	depends on AMLOGIC_TS2
 	help
-		TS0 in serial mode.
+		TS2 in serial mode.
+
+config AMLOGIC_TS2_INVERT_S2P1_FEC_ERROR
+	bool "Invert FEC_ERROR TS2"
+	default n
+	depends on AMLOGIC_S_TS2
+	help
+		TS2 FEC_ERROR invert
+
+config AMLOGIC_TS2_INVERT_S2P1_FEC_DATA
+	bool "Invert FEC_DATA TS2"
+	default n
+	depends on AMLOGIC_S_TS2
+	help
+		TS2 FEC_DATA invert
+
+config AMLOGIC_TS2_INVERT_S2P1_FEC_SYNC
+	bool "Invert FEC_SYNC TS2"
+	default n
+	depends on AMLOGIC_S_TS2
+	help
+		TS2 FEC_SYNC invert
+
+config AMLOGIC_TS2_INVERT_S2P1_FEC_VALID
+	bool "Invert FEC_VALID TS2"
+	default n
+	depends on AMLOGIC_S_TS2
+	help
+		TS2 FEC_VALID invert
+
+config AMLOGIC_TS2_INVERT_S2P1_FEC_CLK
+	bool "Invert FEC_CLK TS2"
+	default n
+	depends on AMLOGIC_S_TS2
+	help
+		TS2 FEC_CLK invert
 
 config AM_MXL101
 	tristate "MXL101 demod driver"

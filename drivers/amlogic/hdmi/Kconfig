@@ -9,4 +9,11 @@ config AML_HDMI_TX
         select AM_DISPLAY_MODULE
         help  
                 hdmi output enable,It should be enalbe if board have hdmi out interface
+
+config AML_HDMI_TX_CEC_SW
+        bool "HDMI CEC Software Enable"
+        default n
+        help  
+                hdmi cec software enable, default is hardware mode
+                
 endmenu

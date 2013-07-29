@@ -1,8 +1,13 @@
 #
 # Makefile for TVIN.
 #
+ifeq ($(CONFIG_AM_HDMI_REPEATER), y)
+obj-y += tvin_it660x_repeater.o
+tvin_it660x_repeater-objs := it660x_repeater/it660x_vdin.o it660x_repeater/it660x_drv.o it660x_repeater/it660x_i2c.o it660x_repeater/hdmirx.o it660x_repeater/csc.o it660x_repeater/edid.o it660x_repeater/hdmirx_repeater.o it660x_repeater/sha1.o
+else
 obj-$(CONFIG_TVIN_IT660X) += tvin_it660x.o
 tvin_it660x-objs := it660x/it660x_vdin.o it660x/it660x_drv.o it660x/it660x_i2c.o it660x/hdmirx.o it660x/csc.o it660x/edid.o
+endif
 
 obj-$(CONFIG_TVIN_VIUIN) += tvin_viuin.o
 tvin_viuin-objs := viu_in.o

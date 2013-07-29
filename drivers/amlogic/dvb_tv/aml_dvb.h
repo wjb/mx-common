@@ -32,8 +32,8 @@
 
 #define DMX_DEV_COUNT     3
 #define FE_DEV_COUNT      1
-#define CHANNEL_COUNT     32
-#define FILTER_COUNT      32
+#define CHANNEL_COUNT     31
+#define FILTER_COUNT      31
 #define FILTER_LEN        15
 #define DSC_COUNT         8
 #define SEC_BUF_GRP_COUNT 4
@@ -118,8 +118,10 @@ struct aml_dmx {
 	int                  sec_total_len;
 	struct aml_sec_buf   sec_buf[SEC_BUF_COUNT];
 	unsigned long        pes_pages;
+	unsigned long        pes_pages_map;
 	int                  pes_buf_len;
 	unsigned long        sub_pages;
+	unsigned long        sub_pages_map;
 	int                  sub_buf_len;
 	struct aml_channel   channel[CHANNEL_COUNT];
 	struct aml_filter    filter[FILTER_COUNT];
@@ -134,6 +136,8 @@ struct aml_dmx {
 	u32                  int_check_time;
 	int                  in_tune;
 	int                  error_check;
+	int                  dump_ts_select;    
+	int                  sec_buf_watchdog_count[SEC_BUF_COUNT];		
 };
 
 struct aml_asyncfifo {
@@ -142,8 +146,11 @@ struct aml_asyncfifo {
 	int	asyncfifo_irq;
 	aml_dmx_id_t	source;
 	unsigned long	pages;
+	unsigned long   pages_map;
 	int	buf_len;
 	int	buf_toggle;
+	int buf_read;
+	int flush_size;
 	struct tasklet_struct     asyncfifo_tasklet;
 	spinlock_t           slock;
 	struct aml_dvb *dvb;
@@ -160,6 +167,7 @@ struct aml_dvb {
 	struct platform_device *pdev;
 	aml_ts_source_t      stb_source;
 	aml_ts_source_t      dsc_source;
+	aml_ts_source_t      tso_source;	
 	int                  dmx_init;
 	int                  reset_flag;
 	spinlock_t           slock;
@@ -175,8 +183,10 @@ extern int aml_dmx_hw_stop_feed(struct dvb_demux_feed *dvbdmxfeed);
 extern int aml_dmx_hw_set_source(struct dmx_demux* demux, dmx_source_t src);
 extern int aml_stb_hw_set_source(struct aml_dvb *dvb, dmx_source_t src);
 extern int aml_dsc_hw_set_source(struct aml_dvb *dvb, dmx_source_t src);
+extern int aml_tso_hw_set_source(struct aml_dvb *dvb, dmx_source_t src);
 extern int aml_dmx_set_skipbyte(struct aml_dvb *dvb, int skipbyte);
 extern int aml_dmx_set_demux(struct aml_dvb *dvb, int id);
+extern int aml_dmx_hw_set_dump_ts_select(struct dmx_demux* demux, int dump_ts_select);
 
 extern int  dmx_alloc_chan(struct aml_dmx *dmx, int type, int pes_type, int pid);
 extern void dmx_free_chan(struct aml_dmx *dmx, int cid);
@@ -190,6 +200,7 @@ extern int dsc_release(struct aml_dsc *dsc);
 extern int aml_asyncfifo_hw_init(struct aml_asyncfifo *afifo);
 extern int aml_asyncfifo_hw_deinit(struct aml_asyncfifo *afifo);
 extern int aml_asyncfifo_hw_set_source(struct aml_asyncfifo *afifo, aml_dmx_id_t src);
+extern int aml_asyncfifo_hw_reset(struct aml_asyncfifo *afifo);
 
 /*Get the Audio & Video PTS*/
 extern u32 aml_dmx_get_video_pts(struct aml_dvb *dvb);

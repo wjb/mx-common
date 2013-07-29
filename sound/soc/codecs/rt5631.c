@@ -2262,6 +2262,7 @@ static int rt5631_resume(struct snd_soc_codec *codec)
 #define RT5631_FORMAT   (SNDRV_PCM_FMTBIT_S16_LE | \
             SNDRV_PCM_FMTBIT_S20_3LE | \
             SNDRV_PCM_FMTBIT_S24_LE | \
+            SNDRV_PCM_FMTBIT_S32_LE | \
             SNDRV_PCM_FMTBIT_S8)
 
 struct snd_soc_dai_ops rt5631_ops = {
@@ -2274,10 +2275,35 @@ struct snd_soc_dai_ops rt5631_ops = {
     .digital_mute = rt5631_codec_digital_mute,
 };
 
+static int hdmi_pcm_hw_params(struct snd_pcm_substream *substream,				struct snd_pcm_hw_params *params,
+	struct snd_soc_dai *dai)
+{	
+	return 0;
+}
+
+static int hdmi_set_dai_fmt(struct snd_soc_dai *codec_dai,
+	unsigned int fmt)
+{	
+	return 0;
+}
+
+static int hdmi_mute(struct snd_soc_dai *dai, int mute)
+{	
+	return 0;
+}
+
+
+static struct snd_soc_dai_ops hdmi_ops = {	
+	.hw_params		= hdmi_pcm_hw_params,	
+	.set_fmt		= hdmi_set_dai_fmt,	
+	.digital_mute	= hdmi_mute,
+};
+
+
 struct snd_soc_dai_driver rt5631_dai[] = {
     {
         .name = "rt5631-hifi",
-        .id = 1,
+        .id = 0,
         .playback = {
             .stream_name = "HIFI Playback",
             .channels_min = 1,
@@ -2293,6 +2319,25 @@ struct snd_soc_dai_driver rt5631_dai[] = {
             .formats = RT5631_FORMAT,
         },
         .ops = &rt5631_ops,
+    },
+    {
+        .name = "hdmi-hifi",
+        .id = 1,
+        .playback = {
+            .stream_name = "HIFI Playback",
+            .channels_min = 1,
+            .channels_max = 8,
+            .rates = RT5631_STEREO_RATES,
+            .formats = RT5631_FORMAT,
+        },
+        .capture = {
+            .stream_name = "HIFI Capture",
+            .channels_min = 1,
+            .channels_max = 8,
+            .rates = RT5631_STEREO_RATES,
+            .formats = RT5631_FORMAT,
+        },
+        .ops = &hdmi_ops,
     },
 };
 

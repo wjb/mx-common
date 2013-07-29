@@ -20,6 +20,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/spinlock.h>
 #include <linux/types.h>
 #include <linux/errno.h>
 #include <linux/platform_device.h>
@@ -30,6 +31,9 @@
 #endif
 
 #include "vdec_reg.h"
+
+static DEFINE_SPINLOCK(lock);
+
 #if MESON_CPU_TYPE == MESON_CPU_TYPE_MESON6TV
 /*
 HHI_VDEC_CLK_CNTL..
@@ -51,13 +55,15 @@ bit8: vdec.gate
 #define VDEC_250M()  WRITE_MPEG_REG(HHI_VDEC_CLK_CNTL, (0 << 9) | (1 << 8) | (3))
 #define VDEC_333M()  WRITE_MPEG_REG(HHI_VDEC_CLK_CNTL, (0 << 9) | (1 << 8) | (2))
 
+#define VDEC_CLOCK_GATE_ON()  WRITE_MPEG_REG_BITS(HHI_VDEC_CLK_CNTL, 8, 1, 1)
+#define VDEC_CLOCK_GATE_OFF() WRITE_MPEG_REG_BITS(HHI_VDEC_CLK_CNTL, 8, 0, 1)
 
 #define vdec_clock_enable() \
-    VDEC_200M(); \
+    VDEC_250M(); \
+    clock_level = 1; \
     WRITE_VREG(DOS_GCLK_EN0, 0xffffffff)
 
 #elif MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
-// TODO: setup VDEC clock with fclk_div2/5 = 250MHz for now.
 /*
 HHI_VDEC_CLK_CNTL..
 bits,9~11:
@@ -75,9 +81,12 @@ bit8: vdec.gate
 #define VDEC_250M()  WRITE_MPEG_REG(HHI_VDEC_CLK_CNTL, (5 << 9) | (1 << 8) | (3))
 #define VDEC_333M()  WRITE_MPEG_REG(HHI_VDEC_CLK_CNTL, (5 << 9) | (1 << 8) | (2))
 
+#define VDEC_CLOCK_GATE_ON()  WRITE_MPEG_REG_BITS(HHI_VDEC_CLK_CNTL, 1, 8, 1)
+#define VDEC_CLOCK_GATE_OFF() WRITE_MPEG_REG_BITS(HHI_VDEC_CLK_CNTL, 0, 8, 1)
 
 #define vdec_clock_enable() \
-    VDEC_200M(); \
+    VDEC_250M(); \
+    clock_level = 1; \
     WRITE_VREG(DOS_GCLK_EN0, 0xffffffff)
 #else
 #define vdec_clock_enable()
@@ -87,6 +96,7 @@ bit8: vdec.gate
 
 #define SUPPORT_VCODEC_NUM  1
 static int inited_vcodec_num = 0;
+static int clock_level;
 
 static struct platform_device *vdec_device = NULL;
 struct am_reg {
@@ -207,6 +217,38 @@ s32 vdec_release(vformat_t vf)
     return 0;
 }
 
+void vdec_power_mode(int level)
+{
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
+
+    /* todo: add level routines for clock adjustment per chips */
+    ulong flags;
+    ulong fiq_flag;
+
+    if (clock_level == level) {
+        return;
+    }
+
+    spin_lock_irqsave(&lock, flags);
+    raw_local_save_flags(fiq_flag);
+    local_fiq_disable();
+
+    if (level == 0) {
+        VDEC_CLOCK_GATE_OFF();
+        VDEC_200M();
+        clock_level = 0;
+    } else {
+        VDEC_CLOCK_GATE_OFF();
+        VDEC_250M();
+        clock_level = 1;
+    }
+
+    raw_local_irq_restore(fiq_flag);
+    spin_unlock_irqrestore(&lock, flags);
+
+#endif
+}
+
 static struct am_reg am_risc[] = {
     {"MSP", 0x300},
     {"MPSR", 0x301 },
@@ -243,10 +285,22 @@ static ssize_t amrisc_regs_show(struct class *class, struct class_attribute *att
     return (pbuf - buf);
 }
 
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
+static ssize_t clock_level_show(struct class *class, struct class_attribute *attr, char *buf)
+{
+    char *pbuf = buf;
 
+    pbuf += sprintf(pbuf, "%d\n", clock_level);
+
+    return (pbuf - buf);
+}
+#endif
 
 static struct class_attribute vdec_class_attrs[] = {
     __ATTR_RO(amrisc_regs),
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
+    __ATTR_RO(clock_level),
+#endif
     __ATTR_NULL
 };
 

@@ -724,6 +724,17 @@ static void am_uart_init_port(struct am_uart_port *am_port,int line)
     port->x_char = 0;
 }
 
+static void am_uart_restart_port(struct am_uart_port *am_port)
+{
+		struct uart_port *port = &am_port->port;
+    int index = am_port->line;
+    am_uart_t *uart = uart_addr[index];
+
+    set_mask(&uart->mode, UART_RXRST|UART_TXRST|UART_CLEAR_ERR);
+    clear_mask(&uart->mode, UART_RXRST|UART_TXRST|UART_CLEAR_ERR);
+    return;
+}
+
 static void am_uart_start_port(struct am_uart_port *am_port)
 {
     struct uart_port *port = &am_port->port;
@@ -869,10 +880,32 @@ struct uart_driver am_uart_reg = {
 	.cons			= AM_UART_CONSOLE,
 };
 
-
+#if 0
 #define am_uart_suspend NULL
 #define am_uart_resume NULL
+#else
+static int am_uart_suspend(struct platform_device * pdev, pm_message_t state)
+{
+    printk(KERN_INFO "%s\n", __func__);
+    return 0;
+}
 
+static int am_uart_resume(struct platform_device * pdev)
+{
+    struct am_uart_port *up;
+    int i,ret = 0;
+
+    printk(KERN_INFO "%s\n", __func__);
+
+    for(i=0;i<UART_NR;i++)
+    {
+        up = &am_ports[i];
+        am_uart_restart_port(up);	    
+    }
+
+    return 0;
+}
+#endif
 static int __devinit am_uart_probe(struct platform_device *pdev)
 {
 	struct am_uart_port *up;

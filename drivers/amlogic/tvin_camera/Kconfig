@@ -47,6 +47,14 @@ config TVIN_IT660X
 	help
 		HDMI device driver.
 
+if TVIN_IT660X
+config AM_HDMI_REPEATER
+        bool "hdmi repeater enable"
+        default n
+        help  
+                need enable HDMITX
+endif        
+
 config TVIN_VDIN
 	bool "Amlogic TVIN VDIN device"
 	default n

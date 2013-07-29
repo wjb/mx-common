@@ -74,7 +74,7 @@ MODULE_PARM_DESC(amlvm_time_log_enable, "enable vm time log when get frames");
 /*same as tvin pool*/
 static int VM_POOL_SIZE = 6 ;
 static int VF_POOL_SIZE = 6;
-static int VM_CANVAS_INDEX = 24;
+static int VM_CANVAS_ID = 24;
 /*same as tvin pool*/
 #endif
 
@@ -86,23 +86,23 @@ static inline void vm_vf_put_from_provider(vframe_t *vf);
 #define INCPTR(p) ptr_atomic_wrap_inc(&p)
 #endif
 
-#define VM_DEPTH_16_CANVAS 0x50         //for single canvas use ,RGB16, YUV422,etc
+#define VM_DEPTH_16_CANVAS VM_CANVAS_INDEX         //for single canvas use ,RGB16, YUV422,etc
 
-#define VM_DEPTH_24_CANVAS 0x52
+#define VM_DEPTH_24_CANVAS VM_CANVAS_INDEX+2
 
-#define VM_DEPTH_8_CANVAS_Y  0x54     // for Y/CbCr 4:2:0
-#define VM_DEPTH_8_CANVAS_UV 0x55
-#define VM_DEPTH_8_CANVAS_U 0x57
-#define VM_DEPTH_8_CANVAS_V 0x58
+#define VM_DEPTH_8_CANVAS_Y  VM_CANVAS_INDEX+4     // for Y/CbCr 4:2:0
+#define VM_DEPTH_8_CANVAS_UV VM_CANVAS_INDEX+5
+#define VM_DEPTH_8_CANVAS_U VM_CANVAS_INDEX+7
+#define VM_DEPTH_8_CANVAS_V VM_CANVAS_INDEX+8
 
-#define VM_RES_CANVAS_INDEX 0x59
-#define VM_RES_CANVAS_INDEX_U 0x5a
-#define VM_RES_CANVAS_INDEX_V 0x5b
-#define VM_RES_CANVAS_INDEX_UV 0x5c
+#define VM_RES_CANVAS_INDEX VM_CANVAS_INDEX+9
+#define VM_RES_CANVAS_INDEX_U VM_CANVAS_INDEX+10
+#define VM_RES_CANVAS_INDEX_V VM_CANVAS_INDEX+11
+#define VM_RES_CANVAS_INDEX_UV VM_CANVAS_INDEX+12
 
-#define VM_DMA_CANVAS_INDEX 0x5e
+#define VM_DMA_CANVAS_INDEX VM_CANVAS_INDEX+14
 
-#define VM_CANVAS_MX 0x5f
+#define VM_CANVAS_MX VM_CANVAS_INDEX+15
 
 #ifdef CONFIG_AMLOGIC_CAPTURE_FRAME_ROTATE
 static int vmdecbuf_size[] ={
@@ -227,7 +227,7 @@ static inline u32 index2canvas(u32 index)
 	get_tvin_canvas_info(&start_canvas,&count);
 	VM_POOL_SIZE  = count ;
 	VF_POOL_SIZE  = count ;
-	VM_CANVAS_INDEX = start_canvas;
+	VM_CANVAS_ID = start_canvas;
 	for(i =0; i< count; i++)
 		canvas_tab[i] =  VM_CANVAS_INDEX +i;
 	return canvas_tab[index];

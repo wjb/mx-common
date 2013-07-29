@@ -51,6 +51,7 @@ typedef struct stream_buf_s {
     u32   wcnt;
 	u32	buf_wp;
 	u32	buf_rp;
+    u32 max_buffer_delay_ms;
 } stream_buf_t;
 
 typedef struct stream_port_s {

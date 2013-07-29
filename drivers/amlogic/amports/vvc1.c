@@ -132,6 +132,34 @@ static DEFINE_SPINLOCK(lock);
 
 static struct dec_sysinfo vvc1_amstream_dec_info;
 
+typedef struct {
+    int state;
+    u32 start_pts;
+    int num;
+    u32 end_pts;
+    u32 rate;
+    u32 trymax;
+} frm_t;
+
+static frm_t frm;
+
+enum {
+    RATE_MEASURE_START_PTS = 0,
+    RATE_MEASURE_END_PTS,
+    RATE_MEASURE_DONE
+};
+#define RATE_MEASURE_NUM 8
+#define RATE_CORRECTION_THRESHOLD 5
+#define RATE_24_FPS  3755   /* 23.97 */
+#define RATE_30_FPS  3003   /* 29.97 */
+#define DUR2PTS(x) ((x)*90/96)
+#define PTS2DUR(x) ((x)*96/90)
+
+static inline bool close_to(int a, int b, int m)
+{
+    return (abs(a-b) < m);
+}
+
 static inline u32 index2canvas(u32 index)
 {
     const u32 canvas_tab[4] = {
@@ -284,6 +312,43 @@ static void vvc1_isr(void)
             }
         }
 #endif
+
+        if ((pts_valid) && (frm.state != RATE_MEASURE_DONE)) {
+            if (frm.state == RATE_MEASURE_START_PTS) {
+                frm.start_pts = pts;
+                frm.state = RATE_MEASURE_END_PTS;
+				frm.trymax =RATE_MEASURE_NUM;
+            } else if (frm.state == RATE_MEASURE_END_PTS) {
+                if (frm.num >= frm.trymax) {
+                    frm.end_pts = pts;
+                    frm.rate = (frm.end_pts - frm.start_pts) /frm.num;
+                    printk("vvc1: before convert rate =%d %d,frm.num=%d\n",frm.rate,DUR2PTS(vvc1_amstream_dec_info.rate),frm.num);
+                    /* check if measured rate is same as settings from upper layer and correct it if necessary */
+                    if ((close_to(frm.rate, RATE_30_FPS, RATE_CORRECTION_THRESHOLD) &&
+                         close_to(DUR2PTS(vvc1_amstream_dec_info.rate), RATE_24_FPS, RATE_CORRECTION_THRESHOLD)) ||
+                        (close_to(frm.rate, RATE_24_FPS, RATE_CORRECTION_THRESHOLD) &&
+                         close_to(DUR2PTS(vvc1_amstream_dec_info.rate), RATE_30_FPS, RATE_CORRECTION_THRESHOLD))) {
+                        printk("vvc1: frame rate converted from %d to %d\n",
+                            vvc1_amstream_dec_info.rate, PTS2DUR(frm.rate));
+                        vvc1_amstream_dec_info.rate = PTS2DUR(frm.rate);
+                        frm.state = RATE_MEASURE_DONE;
+                    }else if(close_to(frm.rate, DUR2PTS(vvc1_amstream_dec_info.rate), RATE_CORRECTION_THRESHOLD)){
+                        frm.state = RATE_MEASURE_DONE;
+                    }else{/*maybe still have problem,try next double frames....*/
+                        frm.state = RATE_MEASURE_DONE;
+                        frm.start_pts = pts;
+                        frm.state = RATE_MEASURE_END_PTS;
+                        if(frm.trymax < 60*10)/*60 fps*60 S */
+                            frm.trymax = frm.trymax<<1;
+                        frm.num = 0; 
+                    }
+                }
+            }
+        }
+
+        if (frm.state != RATE_MEASURE_DONE) {
+            frm.num += (repeat_count > 1) ? repeat_count : 1;
+        }
 
         if (reg & INTERLACE_FLAG) { // interlace
             vfpool_idx[fill_ptr] = buffer_index;
@@ -528,7 +593,7 @@ static void vvc1_canvas_init(void)
         decbuf_size = 0x300000;
     }
 
-    if (READ_MPEG_REG(VPP_MISC) & VPP_VD1_POSTBLEND) {
+    if(is_vpp_postblend()){
         canvas_t cur_canvas;
 
         canvas_read((READ_MPEG_REG(VD1_IF0_CANVAS0) & 0xff), &cur_canvas);
@@ -670,6 +735,8 @@ static void vvc1_local_init(void)
 #ifdef DEBUG_PTS
     pts_hit = pts_missed = pts_i_hit = pts_i_missed = 0;
 #endif
+
+    memset(&frm, 0, sizeof(frm));
 
     for (i = 0; i < 4; i++) {
         vfbuf_use[i] = 0;

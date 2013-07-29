@@ -132,7 +132,7 @@ static void osd_clone_process(void)
 		printk("++ osd clone ge2d config error.\n");
 		return;
 	}
-	stretchblt_noalpha(context, x0, y0, cs.width/4, cs.height/2, x0, y1, cd.width/4, cd.height/2);
+	stretchblt(context, x0, y0, cs.width/4, cs.height/2, x0, y1, cd.width/4, cd.height/2);
 }
 
 void osd_clone_update_pan(int pan)

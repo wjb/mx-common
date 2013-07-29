@@ -497,6 +497,8 @@ static ssize_t platform_type_read(struct class *cla,struct class_attribute *attr
 		return snprintf(buf,80,"current platform is TV\n");
 	}else if(platform_type ==PLATFORM_MID){
 		return snprintf(buf,80,"current platform is MID\n");
+	}else if(platform_type ==PLATFORM_MID_VERTICAL){
+        	return snprintf(buf,80,"current platform is vertical MID\n");
 	}else{ 
 		return snprintf(buf,80,"current platform is MBX\n");
 	}

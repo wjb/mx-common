@@ -188,10 +188,16 @@ int audio_clock_config_table[][11][2]=
 #endif
 
 
-void audio_set_aiubuf(u32 addr, u32 size)
+void audio_set_aiubuf(u32 addr, u32 size, unsigned int channel)
 {
+	printk("====== %s ======\n",__FUNCTION__);
     WRITE_MPEG_REG(AIU_MEM_I2S_START_PTR, addr & 0xffffffc0);
     WRITE_MPEG_REG(AIU_MEM_I2S_RD_PTR, addr & 0xffffffc0);
+    if(channel == 8)
+		WRITE_MPEG_REG(AIU_MEM_I2S_END_PTR, (addr & 0xffffffc0) + (size & 0xffffffc0) - 256); 
+	else if(channel == 6)
+		WRITE_MPEG_REG(AIU_MEM_I2S_END_PTR, (addr & 0xffffffc0) + (size & 0xffffffc0) - 192); 
+	else
     WRITE_MPEG_REG(AIU_MEM_I2S_END_PTR, (addr & 0xffffffc0) + (size & 0xffffffc0) - 64);   //this is for 16bit 2 channel
 
     WRITE_MPEG_REG(AIU_I2S_MISC,		0x0004);	// Hold I2S
@@ -199,6 +205,17 @@ void audio_set_aiubuf(u32 addr, u32 size)
 	// As the default amclk is 24.576MHz, set i2s and iec958 divisor appropriately so as not to exceed the maximum sample rate.
 	WRITE_MPEG_REG(AIU_I2S_MISC,		0x0010 );	// Release hold and force audio data to left or right
 
+	if(channel == 8){
+		printk(" %s channel == 8\n",__FUNCTION__);
+	WRITE_MPEG_REG(AIU_MEM_I2S_MASKS,		(24 << 16) |	// [31:16] IRQ block.
+								(0xff << 8) |	// [15: 8] chan_mem_mask. Each bit indicates which channels exist in memory
+								(0xff << 0));	// [ 7: 0] chan_rd_mask.  Each bit indicates which channels are READ from memory
+		}
+	else if(channel == 6)
+	WRITE_MPEG_REG(AIU_MEM_I2S_MASKS,		(24 << 16) |	// [31:16] IRQ block.
+								(0x3f << 8) |	// [15: 8] chan_mem_mask. Each bit indicates which channels exist in memory
+								(0x3f << 0));	// [ 7: 0] chan_rd_mask.  Each bit indicates which channels are READ from memory
+	else 
 	WRITE_MPEG_REG(AIU_MEM_I2S_MASKS,		(24 << 16) |	// [31:16] IRQ block.
 								(0x3 << 8) |	// [15: 8] chan_mem_mask. Each bit indicates which channels exist in memory
 								(0x3 << 0));	// [ 7: 0] chan_rd_mask.  Each bit indicates which channels are READ from memory

@@ -36,13 +36,39 @@ typedef struct {
     u32 blkmode;
 } canvas_t;
 
+#define AMVDEC_ALL_CANVAS_INDEX 0x0
+#define AMVDEC_ALL_CANVAS_RANGE_0 0xb  // vc1/real/mpeg12/mpeg4/ jpeg logo / h264 
+#define AMVDEC_ALL_CANVAS_RANGE_1 0x17 //mjpeg
+
+#define AMVDEC_H264MVC_CANVAS_INDEX 0x78
+#define AMVDEC_H264MVC_CANVAS_MAX 0xbf
+
+#define AMVDEC_H264_CANVAS_INDEX 0x80
+#define AMVDEC_H264_CANVAS_MAX 0xbf
+
+// tvin vdin0: 0xc-0x23   vdin1: 0x24-0x3b
+#define VDIN_CANVAS_INDEX   0xC
+#define VDIN_CANVAS_MAX_INDEX 0x3B
+
+//tvin camera  vdin0: 0x18-0x1d   vdin1: 0x1e-0x23, nv21 chroma: 0x24-0x2f
+#define VDIN_CAMERA_CANVAS_INDEX   0x18
+#define VDIN_CAMERA_CANVAS_MAX_INDEX 0x2f
+
+//jpeg dec
+#define JPEGDEC_CANVAS_INDEX   0//0x18//0x3a
+#define JPEGDEC_CANVAS_MAX_INDEX 5//0x1d//0x3f
+
 #define OSD1_CANVAS_INDEX 0x40
 #define OSD2_CANVAS_INDEX 0x43
 #define OSD3_CANVAS_INDEX 0x41
 #define OSD4_CANVAS_INDEX 0x42
 #define ALLOC_CANVAS_INDEX  0x46
 
-#define GE2D_MAX_CANVAS_INDEX   0x5f
+#define FREESCALE_CANVAS_INDEX 0x50   //for osd&video scale use
+#define MAX_FREESCALE_CANVAS_INDEX 0x55
+
+#define VM_CANVAS_INDEX 0x50   //vm
+#define VM_CANVAS_MAX_INDEX 0x5f
 
 #define DISPLAY_CANVAS_BASE_INDEX   0x60
 #define DISPLAY_CANVAS_MAX_INDEX    0x65
@@ -54,9 +80,6 @@ typedef struct {
 #define PPMGR_CANVAS_INDEX 0x70
 #define PPMGR_DOUBLE_CANVAS_INDEX 0x74  //for double canvas use
 #define PPMGR_DEINTERLACE_BUF_CANVAS 0x77   /*for progressive mjpeg use*/
-
-#define FREESCALE_CANVAS_INDEX 0x50   //for osd&video scale use
-#define MAX_FREESCALE_CANVAS_INDEX 0x5f
 
 #define PPMGR_DEINTERLACE_BUF_NV21_CANVAS 0x7a   /*for progressive mjpeg (nv21 output)use*/
 
@@ -83,14 +106,21 @@ typedef struct {
 #define MIPI_CANVAS_INDEX 0x70
 #define MIPI_CANVAS_MAX_INDEX 0x7f
 
-#define VDIN1_CANVAS_INDEX 0xC0
-#define VDIN1_CANVAS_MAX_INDEX 0xCF
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6TV
+#define AMLVIDEO2_RES_CANVAS 0xD8
+#define AMLVIDEO2_MAX_RES_CANVAS 0xDB
+#else
+#define AMLVIDEO2_RES_CANVAS 0x3c
+#define AMLVIDEO2_MAX_RES_CANVAS 0x3f
+#endif
 
-#define AMLVIDEO2_RES_CANVAS 0xD0
-#define AMLVIDEO2_MAX_RES_CANVAS 0xD7
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6TV
+#define AMVENC_CANVAS_INDEX 0xDC
+#define AMVENC_CANVAS_MAX_INDEX 0xE1
 
-#define AMVENC_CANVAS_INDEX 0xD8
-#define AMVENC_CANVAS_MAX_INDEX 0xDD
+#define D2D3_CANVAS_DPG_INDEX      0xE2
+#define D2D3_CANVAS_DBR_INDEX      0xE3
+#endif
 
 extern void canvas_config(u32 index, ulong addr, u32 width,
                           u32 height, u32 wrap, u32 blkmode);

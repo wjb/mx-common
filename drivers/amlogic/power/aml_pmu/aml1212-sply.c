@@ -1512,6 +1512,9 @@ static void aml_pmu_irq_work_func(struct work_struct *work)
 static void check_pmu_version(void)
 {
     uint8_t val;
+
+    aml_pmu_read(0x007e, &val);
+    AML_PMU_DBG("OTP VERSION: 0x%02x\n", val);
     aml_pmu_read(0x007f, &val);
     AML_PMU_DBG("PMU VERSION: 0x%02x\n", val);
     if (val > 0x03 || val == 0x00) {

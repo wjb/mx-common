@@ -456,6 +456,63 @@ static int rt5631_codec_init(struct snd_soc_pcm_runtime *rtd)
     return 0;
 }
 
+static int hdmi_hw_params(struct snd_pcm_substream *substream,
+    struct snd_pcm_hw_params *params)
+{
+    struct snd_soc_pcm_runtime *rtd = substream->private_data;
+    struct snd_soc_dai *codec_dai = rtd->codec_dai;
+    struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+    int ret;
+
+    printk(KERN_DEBUG "enter %s rate: %d format: %d\n", __func__, params_rate(params), params_format(params));
+
+    /* set codec DAI configuration */
+    ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
+    if (ret < 0) {
+        printk(KERN_ERR "%s: set codec dai fmt failed!\n", __func__);
+        return ret;
+    }
+
+    /* set cpu DAI configuration */
+	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+	{
+    	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBM_CFM);
+	}
+	else
+    	ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
+    if (ret < 0) {
+        printk(KERN_ERR "%s: set cpu dai fmt failed!\n", __func__);
+        return ret;
+    }
+#if 0   //no audio in
+    /* set codec DAI clock */
+    ret = snd_soc_dai_set_sysclk(codec_dai, 0, params_rate(params) * 256, SND_SOC_CLOCK_IN);
+    if (ret < 0) {
+        printk(KERN_ERR "%s: set codec dai sysclk failed (rate: %d)!\n", __func__, params_rate(params));
+        return ret;
+    }
+#endif
+    /* set cpu DAI clock */
+    ret = snd_soc_dai_set_sysclk(cpu_dai, 0, params_rate(params) * 256, SND_SOC_CLOCK_OUT);
+    if (ret < 0) {
+        printk(KERN_ERR "%s: set cpu dai sysclk failed (rate: %d)!\n", __func__, params_rate(params));
+        return ret;
+    }
+
+    return 0;
+}
+
+
+static struct snd_soc_ops hdmi_soc_ops = {
+    .prepare   = rt5631_prepare,
+    .hw_params = hdmi_hw_params,
+};
+
+static int hdmi_codec_init(struct snd_soc_pcm_runtime *rtd)
+{
+    return 0;
+}
+
 static struct snd_soc_dai_link rt5631_dai_link[] = {
     {
         .name = "RT5631",
@@ -466,6 +523,16 @@ static struct snd_soc_dai_link rt5631_dai_link[] = {
         .platform_name = "aml-audio.0",
         .codec_name = "rt5631.1-001a",
         .ops = &rt5631_soc_ops,
+    },
+    {
+        .name = "HDMI",
+        .stream_name = "HDMI PCM",
+        .cpu_dai_name = "aml-dai0",
+        .codec_dai_name = "hdmi-hifi",
+        .init = hdmi_codec_init,
+        .platform_name = "aml-audio.0",
+        .codec_name = "rt5631.1-001a",
+        .ops = &hdmi_soc_ops,
     },
 };
 

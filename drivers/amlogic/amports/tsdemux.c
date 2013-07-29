@@ -30,6 +30,7 @@
 #include <linux/amports/amstream.h>
 #include <linux/amports/vframe_provider.h>
 #include <linux/device.h>
+#include <linux/delay.h>
 
 #include <asm/uaccess.h>
 #include <mach/am_regs.h>
@@ -616,6 +617,34 @@ void tsdemux_release(void)
 #endif
 
 }
+static int limited_delay_check(struct file *file,
+                      struct stream_buf_s *vbuf,
+                      struct stream_buf_s *abuf,
+                      const char __user *buf, size_t count)
+{
+	int write_size;
+	if(	vbuf->max_buffer_delay_ms>0 && abuf->max_buffer_delay_ms>0 &&
+		stbuf_level(vbuf)>1024 && stbuf_level(abuf)>256){
+		int vdelay=calculation_stream_delayed_ms(PTS_TYPE_VIDEO,NULL,NULL);
+		int adelay=calculation_stream_delayed_ms(PTS_TYPE_AUDIO,NULL,NULL);
+		int maxretry=10;/*max wait 100ms,if timeout,try again top level.*/
+		/*too big  delay,do wait now.*/
+		if(!(file->f_flags & O_NONBLOCK)){/*if noblock mode,don't do wait.*/
+			while(vdelay>vbuf->max_buffer_delay_ms && adelay>abuf->max_buffer_delay_ms && maxretry-->0){
+				///printk("too big delay,vdelay:%d>%d adelay:%d>%d,do wait now,retry=%d\n",vdelay,vbuf->max_buffer_delay_ms,adelay,abuf->max_buffer_delay_ms,maxretry);
+				msleep(10);
+				vdelay=calculation_stream_delayed_ms(PTS_TYPE_VIDEO,NULL,NULL);
+				adelay=calculation_stream_delayed_ms(PTS_TYPE_AUDIO,NULL,NULL);
+			}
+		}
+		if(vdelay>vbuf->max_buffer_delay_ms && adelay>abuf->max_buffer_delay_ms)
+			return 0;
+	}
+    write_size = min(stbuf_space(vbuf), stbuf_space(abuf));
+    write_size = min(count, write_size);
+	return write_size;
+}
+
 
 ssize_t tsdemux_write(struct file *file,
                       struct stream_buf_s *vbuf,
@@ -655,8 +684,7 @@ ssize_t tsdemux_write(struct file *file,
 	        }
         }
     }
-    write_size = min(stbuf_space(vbuf), stbuf_space(abuf));
-    write_size = min(count, write_size);
+	write_size=limited_delay_check(file,vbuf,abuf,buf,count);
     if (write_size > 0) {
         return _tsdemux_write(buf, write_size);
     } else {

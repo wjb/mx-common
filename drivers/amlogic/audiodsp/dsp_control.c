@@ -24,6 +24,7 @@
 
 #define MIN_CACHE_ALIGN(x)	(((x-4)&(~0x1f)))
 #define MAX_CACHE_ALIGN(x)	((x+0x1f)&(~0x1f))
+#define MAX_STREAM_BUF_MEM_SIZE  (32*1024)
 
 extern unsigned IEC958_mode_raw;
 extern unsigned IEC958_mode_codec;
@@ -213,7 +214,7 @@ static inline int dsp_set_stream_buffer( struct audiodsp_priv *priv)
 		return 0;
 		}
 	if(priv->stream_buffer_mem==NULL)
-		priv->stream_buffer_mem=(void*)kmalloc(priv->stream_buffer_mem_size,GFP_KERNEL);
+		priv->stream_buffer_mem=(void*)kmalloc(MAX_STREAM_BUF_MEM_SIZE,GFP_KERNEL);
 	if(priv->stream_buffer_mem==NULL)
 		{
 		DSP_PRNT("kmalloc error,no memory for audio dsp stream buffer\n");

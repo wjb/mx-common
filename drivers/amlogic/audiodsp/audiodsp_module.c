@@ -75,6 +75,7 @@ unsigned dsp_debug_flag;
 
 extern struct audio_info * get_audio_info(void);
 extern void	aml_alsa_hw_reprepare(void);
+extern void dsp_get_debug_interface(void);
 void audiodsp_moniter(unsigned long);
 static struct audiodsp_priv *audiodsp_p;
 #define  DSP_DRIVER_NAME	"audiodsp"
@@ -1044,8 +1045,10 @@ int audiodsp_probe(void )
 	set_adec_func(audiodsp_get_status);
 #endif
     memset((void*)DSP_REG_OFFSET,0,REG_MEM_SIZE);
-    
-	return res;
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
+    dsp_get_debug_interface();    
+#endif
+    return res;
 
 //error4:
 	device_destroy(priv->class, MKDEV(AUDIODSP_MAJOR, 0));

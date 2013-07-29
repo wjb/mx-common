@@ -265,6 +265,7 @@ static const reg_t tvregs_480cvbs[] = {
     {ENCI_VIDEO_MODE_ADV,          0x26,  },
     {ENCI_VIDEO_SCH,               0x20,  },
     {ENCI_SYNC_MODE,               0x07,  },
+    {ENCI_MACV_N0,               0,     },
     {ENCI_YC_DELAY,                0x353, },
     {ENCI_VFIFO2VD_PIXEL_START,    0xf3,  },
     {ENCI_VFIFO2VD_PIXEL_END,      0x0693,},
@@ -569,6 +570,7 @@ static const reg_t tvregs_576cvbs[] = {
     {ENCI_VIDEO_MODE_ADV,             0x26,      },
     {ENCI_VIDEO_SCH,                  0x28,      },
     {ENCI_SYNC_MODE,                  0x07,      },
+    {ENCI_MACV_N0,               0,     },
     {ENCI_YC_DELAY,                   0x353,     },
     {ENCI_VFIFO2VD_PIXEL_START,       0x010b     },
     {ENCI_VFIFO2VD_PIXEL_END,         0x06ab     },
@@ -1033,10 +1035,10 @@ static const tvinfo_t tvinfoTab[] = {
     {.xres =  720, .yres =  576, .id = "576cvbs"},
     {.xres =  720, .yres =  576, .id = "576p"},
     {.xres = 1280, .yres =  720, .id = "720p"},
-    {.xres = 1280, .yres =  720, .id = "720p50hz"},
     {.xres = 1920, .yres = 1080, .id = "1080i"},
-    {.xres = 1920, .yres = 1080, .id = "1080i50hz"},
     {.xres = 1920, .yres = 1080, .id = "1080p"},
+    {.xres = 1280, .yres =  720, .id = "720p50hz"},
+    {.xres = 1920, .yres = 1080, .id = "1080i50hz"},
     {.xres = 1920, .yres = 1080, .id = "1080p50hz"}
 };
 

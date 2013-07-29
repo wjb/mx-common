@@ -56,11 +56,11 @@ extern struct AVL_DVBSx_Chip * pAVLChip_all;
 AVL_semaphore blindscanSem;
 static int blindstart=0;
 struct dvb_frontend *fe_use = NULL;
-struct aml_fe_dev *cur_dev = NULL;
+struct aml_fe_dev *cur_dvbdev = NULL;
 
 struct aml_fe_dev * avl6211_get_cur_dev(void)
 {
-	return cur_dev;
+	return cur_dvbdev;
 }
 
 static int AVL6211_Reset(int reset_gpio)
@@ -725,7 +725,7 @@ static int avl6211_fe_enter_mode(struct aml_fe *fe, int mode)
 {
 	struct aml_fe_dev *dev = fe->dtv_demod;
 
-	cur_dev = dev;
+	cur_dvbdev = dev;
 	pr_dbg("=========================demod init\r\n");
 	AVL_DVBSx_ErrorCode r = AVL_DVBSx_EC_OK;
 	//init sema

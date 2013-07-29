@@ -211,6 +211,14 @@ void set_vmode_clk(vmode_t mode)
     set_encl_div(p_enc[j].encl_div);
     set_vdac0_div(p_enc[j].vdac0_div);
     set_vdac1_div(p_enc[j].vdac1_div);
+
+    // If VCO outputs 1488, then we will reset it to exact 1485
+    // please note, don't forget to re-config CNTL3/4
+    if(((READ_CBUS_REG(HHI_VID_PLL_CNTL) & 0x7fff) == 0x43e)||((READ_CBUS_REG(HHI_VID_PLL_CNTL) & 0x7fff) == 0x21ef)) {
+        WRITE_CBUS_REG_BITS(HHI_VID_PLL_CNTL, 0x21ef, 0, 14);
+        WRITE_CBUS_REG(HHI_VID_PLL_CNTL3, 0x4b525012);
+        WRITE_CBUS_REG(HHI_VID_PLL_CNTL4, 0x42000101);
+    }
     
 // For debug only
 #if 0

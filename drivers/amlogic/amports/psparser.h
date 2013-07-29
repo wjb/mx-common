@@ -43,6 +43,7 @@ extern u8 psparser_get_sub_found_num(void);
 
 extern u8 psparser_get_sub_info(struct subtitle_info *sub_infos[]);
 
+
 #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
 // TODO: move to register headers
 #define ES_PACK_SIZE_BIT                8

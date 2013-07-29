@@ -54,6 +54,9 @@ typedef struct pts_table_s {
     u32 last_checkin_offset;
     u32 last_checkin_pts;
     u32 last_checkout_pts;
+    u32 last_checkout_offset;
+    u32 last_bitrate;
+    u32 last_avg_bitrate;
 #endif
 } pts_table_t;
 
@@ -160,6 +163,45 @@ int pts_cached_time(u8 type)
 }
 
 EXPORT_SYMBOL(pts_cached_time);
+
+int calculation_stream_delayed_ms(u8 type,u32 *latestbitrate,u32*avg_bitare)
+{
+    pts_table_t *pTable;
+	u32 timestampe_delayed=0;
+	u32 outtime;
+	
+    if (type >= PTS_TYPE_MAX) {
+        return 0;
+    }
+
+    pTable = &pts_table[type];
+
+    if((pTable->last_checkin_pts==-1) || (pTable->last_checkout_pts==-1))
+	    return 0;
+	if(type == PTS_TYPE_VIDEO)
+		outtime=timestamp_vpts_get();
+	else if(type ==PTS_TYPE_AUDIO)
+		outtime=timestamp_apts_get();
+	else 
+		outtime=timestamp_pcrscr_get();
+    timestampe_delayed=(pTable->last_checkin_pts-outtime)/90;
+	///printk("get delay =%d ms\n",timestampe_delayed);
+	if((timestampe_delayed<0 ||timestampe_delayed>5*1000) && pTable->last_avg_bitrate>0){
+		int diff=pTable->last_checkin_offset-pTable->last_checkout_offset;
+		int delay_ms=diff*1000/(1+pTable->last_avg_bitrate/8);
+		if(timestampe_delayed< 0 ||abs(timestampe_delayed-delay_ms)>3*1000){
+			timestampe_delayed=delay_ms;
+			///printk("..recalculated %d ms delay\n",timestampe_delayed);
+		}
+	}
+	if(latestbitrate)
+		*latestbitrate=pTable->last_bitrate;
+	if(avg_bitare)
+		*avg_bitare=pTable->last_avg_bitrate;
+	return timestampe_delayed;
+}
+EXPORT_SYMBOL(calculation_stream_delayed_ms);
+
 #endif
 
 int pts_checkin_offset(u8 type, u32 offset, u32 val)
@@ -215,8 +257,27 @@ int pts_checkin_offset(u8 type, u32 offset, u32 val)
 	{
 		s32 diff = offset-pTable->last_checkin_offset;
 		if(diff>0){
+			if((val-pTable->last_checkin_pts)>0){
+				int newbitrate=diff*8*90/(1+(val-pTable->last_checkin_pts)/1000);
+				if(pTable->last_bitrate>100){
+					if(newbitrate<pTable->last_bitrate*5 && newbitrate>pTable->last_bitrate/5){
+						pTable->last_avg_bitrate=(pTable->last_avg_bitrate*9+newbitrate)/10;
+					}else{
+						/*
+						newbitrate is >5*lastbitrate or < bitrate/5;
+						we think a pts discontinue.we must double check it.
+						ignore update  birate.;
+						*/
+					}
+				}else if(newbitrate>100){
+					/*first init.*/
+					pTable->last_avg_bitrate=pTable->last_bitrate=newbitrate;
+				}
+				pTable->last_bitrate=newbitrate;
+			}
 			pTable->last_checkin_offset = offset;
 			pTable->last_checkin_pts    = val;
+			
 		}
 	}
 #endif
@@ -425,6 +486,8 @@ int pts_lookup_offset(u8 type, u32 offset, u32 *val, u32 pts_margin)
 
 #ifdef CALC_CACHED_TIME
 	    pTable->last_checkout_pts = p2->val;
+		pTable->last_checkout_offset = offset;
+
 #endif
 
             pTable->lookup_cache_pts = *val;
@@ -656,6 +719,9 @@ int pts_start(u8 type)
 	pTable->last_checkin_offset = 0;
 	pTable->last_checkin_pts    = -1;
 	pTable->last_checkout_pts   = -1;
+	pTable->last_checkout_offset= -1;
+	pTable->last_avg_bitrate = 0;
+	pTable->last_bitrate = 0;
 #endif
 
         pTable->pts_search = &pTable->valid_list;

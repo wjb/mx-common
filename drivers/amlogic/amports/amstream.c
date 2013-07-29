@@ -1418,7 +1418,60 @@ static long amstream_ioctl(struct file *file,
     case AMSTREAM_IOC_SET_DEMUX:
         tsdemux_set_demux((int)arg);
         break;
-
+	case AMSTREAM_IOC_SET_VIDEO_DELAY_LIMIT_MS:
+        bufs[BUF_TYPE_VIDEO].max_buffer_delay_ms = (int)arg;
+        break;
+	case AMSTREAM_IOC_SET_AUDIO_DELAY_LIMIT_MS:
+        bufs[BUF_TYPE_AUDIO].max_buffer_delay_ms = (int)arg;
+        break;
+	case AMSTREAM_IOC_GET_VIDEO_DELAY_LIMIT_MS:
+        put_user(bufs[BUF_TYPE_VIDEO].max_buffer_delay_ms,(int *)arg);
+        break;
+	case AMSTREAM_IOC_GET_AUDIO_DELAY_LIMIT_MS:
+        put_user(bufs[BUF_TYPE_AUDIO].max_buffer_delay_ms,(int *)arg);
+        break;		
+	case AMSTREAM_IOC_GET_VIDEO_CUR_DELAY_MS:
+		{
+		int delay;
+		delay=calculation_stream_delayed_ms(PTS_TYPE_VIDEO,NULL,NULL);
+		if(delay>=0)
+			put_user(delay,(int *)arg);
+		else 
+			put_user(0,(int *)arg);
+        break;
+		}
+	case AMSTREAM_IOC_GET_AUDIO_CUR_DELAY_MS:
+		{
+		int delay;
+		delay=calculation_stream_delayed_ms(PTS_TYPE_AUDIO,NULL,NULL);
+		if(delay>=0)
+			put_user(delay,(int *)arg);
+		else 
+			put_user(0,(int *)arg);
+        break;
+		}
+	case AMSTREAM_IOC_GET_AUDIO_AVG_BITRATE_BPS:
+		{
+		int delay;
+		u32 avgbps;
+		delay=calculation_stream_delayed_ms(PTS_TYPE_AUDIO,NULL,&avgbps);
+		if(delay>=0)
+			put_user(avgbps,(int *)arg);
+		else 
+			put_user(0,(int *)arg);
+        break;
+		}
+	case AMSTREAM_IOC_GET_VIDEO_AVG_BITRATE_BPS:
+		{
+		int delay;
+		u32 avgbps;
+		delay=calculation_stream_delayed_ms(PTS_TYPE_VIDEO,NULL,&avgbps);
+		if(delay>=0)
+			put_user(avgbps,(int *)arg);
+		else 
+			put_user(0,(int *)arg);
+        break;		
+		}
     default:
         r = -ENOIOCTLCMD;
         break;
@@ -1496,7 +1549,7 @@ static ssize_t bufs_show(struct class *class, struct class_attribute *attr, char
     int i;
     char *pbuf = buf;
     stream_buf_t *p = NULL;
-    char buf_type[][12] = {"Video", "Audio", "Subtitle", "NA"};
+    char buf_type[][12] = {"Video", "Audio", "Subtitle", "UserData"};
     for (i = 0; i < sizeof(bufs) / sizeof(stream_buf_t); i++) {
         p = &bufs[i];
         /*type*/
@@ -1530,17 +1583,19 @@ static ssize_t bufs_show(struct class *class, struct class_attribute *attr, char
         if (p->type != BUF_TYPE_SUBTITLE) {
 
             pbuf += sprintf(pbuf, "\tbuf size:%#x\n", p->buf_size);
-	      pbuf += sprintf(pbuf, "\tbuf canusesize:%#x\n", p->canusebuf_size);		
+            pbuf += sprintf(pbuf, "\tbuf canusesize:%#x\n", p->canusebuf_size);
             pbuf += sprintf(pbuf, "\tbuf regbase:%#lx\n", p->reg_base);
+            if (p->reg_base) {
 #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
-            switch_mod_gate_by_name("vdec", 1);
+                switch_mod_gate_by_name("vdec", 1);
 #endif
-            pbuf += sprintf(pbuf, "\tbuf level:%#x\n", stbuf_level(p));
-            pbuf += sprintf(pbuf, "\tbuf space:%#x\n", stbuf_space(p));
-			pbuf += sprintf(pbuf, "\tbuf read pointer:%#x\n", stbuf_rp(p));
+                pbuf += sprintf(pbuf, "\tbuf level:%#x\n", stbuf_level(p));
+                pbuf += sprintf(pbuf, "\tbuf space:%#x\n", stbuf_space(p));
+                pbuf += sprintf(pbuf, "\tbuf read pointer:%#x\n", stbuf_rp(p));
 #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
-            switch_mod_gate_by_name("vdec", 0);
+                switch_mod_gate_by_name("vdec", 0);
 #endif
+            }
         } else {
             u32 sub_wp, sub_rp, data_size;
             sub_wp = stbuf_sub_wp_get();
@@ -1559,8 +1614,18 @@ static ssize_t bufs_show(struct class *class, struct class_attribute *attr, char
         }
 
         pbuf += sprintf(pbuf, "\tbuf first_stamp:%#x\n", p->first_tstamp);
-
         pbuf += sprintf(pbuf, "\tbuf wcnt:%#x\n\n", p->wcnt);
+		
+		pbuf += sprintf(pbuf, "\tbuf max_buffer_delay_ms:%dms\n", p->max_buffer_delay_ms);
+		{
+			int calc_delayms=0;
+			u32 bitrate=0,avg_bitrate=0;
+			calc_delayms=calculation_stream_delayed_ms(p->type,&bitrate,&avg_bitrate);
+			if(calc_delayms>0){
+		    	pbuf += sprintf(pbuf, "\tbuf current delay:%dms\n",calc_delayms);
+		    	pbuf += sprintf(pbuf, "\tbuf bitrate latest:%dbps,avg:%dbps\n",bitrate,avg_bitrate);
+			}
+		}
     }
     return pbuf - buf;
 }
@@ -1609,12 +1674,37 @@ static ssize_t store_canuse_buferlevel(struct class *class, struct class_attribu
     reset_canuse_buferlevel(val);
     return size;
 }
+static ssize_t store_maxdelay(struct class *class, struct class_attribute *attr, const char *buf, size_t size)
+
+{
+    unsigned val;
+    ssize_t ret;
+	int i;
+
+    ret = sscanf(buf, "%d", &val);     
+    if(ret != 1 ) {
+        return -EINVAL;
+    }  
+	for (i = 0; i < sizeof(bufs) / sizeof(stream_buf_t); i++) {
+		bufs[i].max_buffer_delay_ms=val;
+	}
+    return size;
+}
+static ssize_t show_maxdelay(struct class *class, struct class_attribute *attr, char *buf)
+{
+    ssize_t size=0;
+	size+=sprintf(buf, "%dms	//video max buffered data delay ms\n",bufs[0].max_buffer_delay_ms);
+	size+=sprintf(buf, "%dms	//audio max buffered data delay ms\n",bufs[1].max_buffer_delay_ms);
+    return size;
+}
+
 
 static struct class_attribute amstream_class_attrs[] = {
     __ATTR_RO(ports),
     __ATTR_RO(bufs),
     __ATTR_RO(vcodec_profile),
     __ATTR(canuse_buferlevel, S_IRUGO | S_IWUSR | S_IWGRP, show_canuse_buferlevel, store_canuse_buferlevel),
+    __ATTR(max_buffer_delay_ms, S_IRUGO | S_IWUSR | S_IWGRP, show_maxdelay, store_maxdelay),
     __ATTR_NULL
 };
 static struct class amstream_class = {

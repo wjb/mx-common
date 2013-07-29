@@ -10,6 +10,11 @@
 #include <linux/spi/flash.h>
 
 #include <mach/spi_nor.h>
+
+#ifdef CONFIG_SPI_NAND_COMPATIBLE
+			#define BOOT_DEVICE_FLAG     READ_CBUS_REG(ASSIST_POR_CONFIG)	
+#endif
+
 /****************************************************************************/
 
 struct spi_nor {
@@ -522,7 +527,18 @@ static int spi_nor_probe(struct spi_device *spi)
 	unsigned			i;
 	struct mtd_partition *parts;
 	int nr;
-
+	
+#ifdef CONFIG_SPI_NAND_COMPATIBLE
+	printk(" %s %d\n",__func__,__LINE__);
+	if( (((BOOT_DEVICE_FLAG & 7) == 7) || ((BOOT_DEVICE_FLAG & 7) == 6))){
+		printk("nand boot : %s do not register spi\n",__func__);
+		return -ENODEV;
+	}else if( (((BOOT_DEVICE_FLAG & 7) == 5) || ((BOOT_DEVICE_FLAG & 7) == 4))){
+		printk("SPI BOOT  : %s %d \n",__func__,__LINE__);
+	}else {
+		return -ENODEV;
+	}
+#endif
 	/* Platform data helps sort out which chip type we have, as
 	 * well as how this board partitions it.  If we don't have
 	 * a chip ID, try the JEDEC id commands; they'll work for most

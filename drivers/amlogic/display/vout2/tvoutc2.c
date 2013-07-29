@@ -31,8 +31,7 @@
 #include <linux/vout/vinfo.h>
 #include "tvoutc.h"
 #include <linux/clk.h>
-
-
+#include <mach/mod_gate.h>
 
 static u32 curr_vdac_setting=DEFAULT_VDAC_SEQUENCE;
 #include "tvregs.h"
@@ -233,6 +232,10 @@ int tvoutc_setmode2(tvmode_t mode)
         printk(KERN_ERR "Invalid video output modes.\n");
         return -ENODEV;
     }
+
+#if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
+    switch_mod_gate_by_name("venc", 1);
+#endif
 
     printk(KERN_DEBUG "TV mode %s selected.\n", tvinfoTab[mode].id);
    

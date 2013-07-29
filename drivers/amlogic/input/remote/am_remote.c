@@ -58,8 +58,6 @@
 
 type_printk input_dbg;
 #ifdef CONFIG_AML_HDMI_TX
-extern void cec_inactive_source(void);
-extern void cec_set_standby(void);
 extern int cec_power_flag;
 unsigned char cec_repeat = 10;
 #endif
@@ -423,8 +421,10 @@ static inline int remote_hw_reprot_key(struct remote *remote_data)
 #ifdef CONFIG_AML_HDMI_TX
 		//printk("last_scan_code:%x\n", last_scan_code);
 		if((((scan_code >> 16) & 0xff) == 0x1a) && (!cec_repeat)) {
+            extern int rc_long_press_pwr_key;
+            rc_long_press_pwr_key = 1;
 		    cec_repeat = 10;
-		    cec_set_standby();
+		    //cec_set_standby();
 		    mdelay(20);
 		}
 		if(((scan_code >> 16) & 0xff) == 0x1a)

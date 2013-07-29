@@ -28,7 +28,7 @@ source "drivers/amlogic/smartcard/Kconfig"
 source "drivers/amlogic/gps/Kconfig"
 #source "drivers/amlogic/modem/Kconfig"
 source "drivers/amlogic/debug/Kconfig"
-source "drivers/amlogic/sensors/Kconfig"
+#source "drivers/amlogic/sensors/Kconfig"
 source "drivers/amlogic/boot_monitor/Kconfig"
 source "drivers/amlogic/watchdog/Kconfig"
 

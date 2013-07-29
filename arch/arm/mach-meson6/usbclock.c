@@ -125,14 +125,14 @@ int set_usb_phy_clk(struct lm_device * plmdev,int is_enable)
 				printk(KERN_ERR"USB (%d) PHY Clock not detected!\n",1);
 			}
 		}
-		uart.d32 = peri->dbg_uart;
-		uart.b.set_iddq = 0;
-		peri->dbg_uart = uart.d32;		
+		//uart.d32 = peri->dbg_uart;
+		//uart.b.set_iddq = 0;
+		//peri->dbg_uart = uart.d32;		
 	}else{
 		init_count--;
-		uart.d32 = peri->dbg_uart;
-		uart.b.set_iddq = 1;
-		peri->dbg_uart = uart.d32;
+		//uart.d32 = peri->dbg_uart;
+		//uart.b.set_iddq = 1;
+		//peri->dbg_uart = uart.d32;
 	}
 	dmb();
 	

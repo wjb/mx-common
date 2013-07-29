@@ -874,7 +874,7 @@ int tsync_set_apts(unsigned pts)
    		t = timestamp_pcrscr_get();
     if( tsync_mode == TSYNC_MODE_AMASTER ) {
         if (get_vsync_pts_inc_mode()
-          && (((int)(timestamp_apts_get()-t)>(int)100*TIME_UNIT90K/1000) || (int)(t - timestamp_apts_get())>(int)2*TIME_UNIT90K)){
+          && (((int)(timestamp_apts_get()-t)>(int)100*TIME_UNIT90K/1000) || (int)(t - timestamp_apts_get())>(int)500*TIME_UNIT90K/1000)){
             printk("[%d]reset apts:0x%x-->0x%x, pcr 0x%x, diff %d\n",__LINE__,oldpts,pts,t,pts-t);
             timestamp_pcrscr_set(pts+TIME_UNIT90K/5);
         } else if ((!get_vsync_pts_inc_mode()) && (abs(timestamp_apts_get()-t)>100*TIME_UNIT90K/1000)) {

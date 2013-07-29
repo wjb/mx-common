@@ -30,6 +30,6 @@ extern s32 vdec_release(vformat_t vf);
 
 s32 vdec_dev_register(void);
 s32 vdec_dev_unregister(void);
-
+void vdec_power_mode(int level);
 
 #endif /* VDEC_H */
