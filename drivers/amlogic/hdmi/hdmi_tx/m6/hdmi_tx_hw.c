@@ -297,8 +297,8 @@ static void hdmi_tvenc1080i_set(Hdmi_tx_video_para_t* param)
 {
     unsigned long VFIFO2VD_TO_HDMI_LATENCY = 2; // Annie 01Sep2011: Change value from 3 to 2, due to video encoder path delay change.
     unsigned long TOTAL_PIXELS, PIXEL_REPEAT_HDMI, PIXEL_REPEAT_VENC, ACTIVE_PIXELS;
-    unsigned FRONT_PORCH, HSYNC_PIXELS, ACTIVE_LINES, INTERLACE_MODE, TOTAL_LINES, SOF_LINES, VSYNC_LINES;
-    unsigned LINES_F0, LINES_F1,BACK_PORCH, EOF_LINES, TOTAL_FRAMES;
+    unsigned FRONT_PORCH = 0, HSYNC_PIXELS, ACTIVE_LINES = 0, INTERLACE_MODE, TOTAL_LINES, SOF_LINES, VSYNC_LINES = 0;
+    unsigned LINES_F0 = 0, LINES_F1 = 0, BACK_PORCH, EOF_LINES = 0, TOTAL_FRAMES;
 
     unsigned long total_pixels_venc ;
     unsigned long active_pixels_venc;
@@ -448,8 +448,8 @@ static void hdmi_tvenc480i_set(Hdmi_tx_video_para_t* param)
 {
     unsigned long VFIFO2VD_TO_HDMI_LATENCY = 1; // Annie 01Sep2011: Change value from 2 to 1, due to video encoder path delay change.
     unsigned long TOTAL_PIXELS, PIXEL_REPEAT_HDMI, PIXEL_REPEAT_VENC, ACTIVE_PIXELS;
-    unsigned FRONT_PORCH, HSYNC_PIXELS, ACTIVE_LINES, INTERLACE_MODE, TOTAL_LINES, SOF_LINES, VSYNC_LINES;
-    unsigned LINES_F0, LINES_F1,BACK_PORCH, EOF_LINES, TOTAL_FRAMES;
+    unsigned FRONT_PORCH = 0, HSYNC_PIXELS = 0, ACTIVE_LINES = 0, INTERLACE_MODE, TOTAL_LINES, SOF_LINES, VSYNC_LINES;
+    unsigned LINES_F0 = 0, LINES_F1 = 0, BACK_PORCH = 0, EOF_LINES = 0, TOTAL_FRAMES;
 
     unsigned long total_pixels_venc ;
     unsigned long active_pixels_venc;

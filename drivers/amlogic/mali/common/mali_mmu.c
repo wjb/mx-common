@@ -8,6 +8,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include <mach/cpu.h>
+
 #if MESON_CPU_TYPE >= MESON_CPU_TYPE_MESON6
 #include "mali_platform.h"
 #include "meson_platform/mali_fix.h"
